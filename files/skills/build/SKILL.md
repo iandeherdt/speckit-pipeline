@@ -1,5 +1,16 @@
 Implement all sprints from the spec-kit task list. Each sprint loops through dev → eval until the evaluator passes.
 
+## Configuration
+
+Model assignment per subagent. Change these to control cost/quality tradeoffs:
+
+| Subagent    | Model    | Rationale |
+|-------------|----------|-----------|
+| developer   | $DEVELOPER_MODEL (default: sonnet) | Heavy code generation — sonnet balances speed and quality |
+| evaluator   | $EVALUATOR_MODEL (default: opus)   | Critical judgment — opus is more thorough at finding issues |
+
+Override by setting variables before invoking `/build`, or edit the defaults above.
+
 ## Prerequisites
 Spec-kit planning must be complete. Verify these exist:
 - `.speckit/spec.md`
@@ -14,11 +25,11 @@ Read the sprint files from `.speckit/tasks/` in order.
 
 For each sprint (max cycles per sprint: $MAX_CYCLES, default 5):
 
-1. Delegate to **developer** subagent:
+1. Delegate to **developer** subagent (model: **$DEVELOPER_MODEL**):
    - Tell it which sprint and stories to implement
    - If this is a retry, include the **full path** to the latest feedback file and explicitly say: "You MUST read and fix all Issues Found before doing anything else"
 
-2. Delegate to **evaluator** subagent:
+2. Delegate to **evaluator** subagent (model: **$EVALUATOR_MODEL**):
    - Tell it which stories to verify
    - Tell it the sprint number and cycle number for feedback file naming
    - Tell it to use the Claude Preview MCP tools (preview_start, preview_screenshot, preview_snapshot, etc.) for browser verification — code review alone is NOT acceptable
