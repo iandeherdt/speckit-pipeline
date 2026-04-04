@@ -1,0 +1,28 @@
+{
+  "name": "speckit-pipeline",
+  "version": "1.0.0",
+  "description": "Build/design pipeline extension for spec-kit projects. Adds dev/eval and designer/critic loops with Claude Preview MCP browser verification.",
+  "type": "module",
+  "bin": {
+    "speckit-pipeline": "./bin/speckit-pipeline.mjs"
+  },
+  "files": [
+    "bin/",
+    "lib/",
+    "files/"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "speckit",
+    "claude",
+    "claude-code",
+    "pipeline",
+    "build",
+    "design",
+    "ai-agents"
+  ],
+  "author": "Ian De Herdt",
+  "license": "MIT"
+}
