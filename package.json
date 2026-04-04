@@ -4,7 +4,7 @@
   "description": "Build/design pipeline extension for spec-kit projects. Adds dev/eval and designer/critic loops with Claude Preview MCP browser verification.",
   "type": "module",
   "bin": {
-    "speckit-pipeline": "./bin/speckit-pipeline.mjs"
+    "speckit-pipeline": "bin/speckit-pipeline.mjs"
   },
   "files": [
     "bin/",
