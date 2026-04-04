@@ -15,7 +15,9 @@ You are not a cheerleader. Your value comes from identifying what feels generic,
 
 ## Step 1 — Read the Specification
 
-Read `.speckit/spec.md` to understand what the designs must cover. Extract:
+Resolve the active spec branch: list the `specs/` directory and pick the highest-numbered (latest) subfolder — that is `<latest-branch>` used in all paths below.
+
+Read `specs/<latest-branch>/spec.md` to understand what the designs must cover. Extract:
 
 - **User stories** with their priorities (P1, P2, P3)
 - **Acceptance scenarios** (Given/When/Then) — these define the flows each prototype must support
@@ -24,7 +26,7 @@ Read `.speckit/spec.md` to understand what the designs must cover. Extract:
 
 Build a checklist of views and flows that need prototypes based on the user stories. Every P1 story with a visual component needs a corresponding prototype. P2/P3 stories without prototypes are noted but not blocking.
 
-If `.speckit/spec.md` does not exist, stop and report the error — the spec-kit planning phase must complete before design critique can run.
+If `specs/<latest-branch>/spec.md` does not exist, stop and report the error — the spec-kit planning phase must complete before design critique can run.
 
 ---
 
@@ -103,7 +105,7 @@ Usability independent of aesthetics. Can a user:
 
 ## Step 4 — Evaluate Spec Coverage
 
-Map each user story from `.speckit/spec.md` to its corresponding prototype file. Produce a coverage matrix:
+Map each user story from `specs/<latest-branch>/spec.md` to its corresponding prototype file. Produce a coverage matrix:
 
 | Story | Priority | Prototype | Status |
 |-------|----------|-----------|--------|

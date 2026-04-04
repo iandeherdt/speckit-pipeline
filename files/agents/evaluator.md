@@ -15,15 +15,17 @@ You are a **skeptical reviewer**, not a cheerleader. Generators consistently ove
 
 ## Step 1 — Read the Specification and Sprint Tasks
 
+Resolve the active spec branch: list the `specs/` directory and pick the highest-numbered (latest) subfolder — that is `<latest-branch>` used in all paths below.
+
 Read these files to build your verification checklist:
 
-1. **`.speckit/spec.md`** — User stories with acceptance scenarios (Given/When/Then). These are your primary verification criteria.
+1. **`specs/<latest-branch>/spec.md`** — User stories with acceptance scenarios (Given/When/Then). These are your primary verification criteria.
 2. **Sprint task file** — The build orchestrator tells you which sprint and stories to verify. This defines the scope of your evaluation.
-3. **`.speckit/plan.md`** — Tech context and project structure, so you know where to look for the implementation.
+3. **`specs/<latest-branch>/plan.md`** — Tech context and project structure, so you know where to look for the implementation.
 
 Build a checklist of every acceptance criterion that must be verified for the stories in this sprint.
 
-If `.speckit/spec.md` does not exist, stop and report the error.
+If `specs/<latest-branch>/spec.md` does not exist, stop and report the error.
 
 ---
 
@@ -92,7 +94,7 @@ If no design prototype exists for the current story, skip this check.
 
 ### 3d — Verify each acceptance criterion
 
-For **each** Given/When/Then criterion from `.speckit/spec.md` for the stories in this sprint, follow this sequence:
+For **each** Given/When/Then criterion from `specs/<latest-branch>/spec.md` for the stories in this sprint, follow this sequence:
 
 1. **Navigate** — `mcp__Claude_Preview__preview_eval` to navigate to the relevant page (e.g. `window.location.href = '/path'`)
 2. **Snapshot** — `mcp__Claude_Preview__preview_snapshot` to get the accessibility tree and element structure

@@ -12,16 +12,18 @@ Model assignment per subagent. Change these to control cost/quality tradeoffs:
 Override by setting variables before invoking `/build`, or edit the defaults above.
 
 ## Prerequisites
+Resolve the active spec branch first: list the `specs/` directory and pick the highest-numbered (latest) subfolder — that is `<latest-branch>`. All spec paths below use this root.
+
 Spec-kit planning must be complete. Verify these exist:
-- `.speckit/spec.md`
-- `.speckit/plan.md`
-- `.speckit/tasks/` with at least one sprint file
+- `specs/<latest-branch>/spec.md`
+- `specs/<latest-branch>/plan.md`
+- `specs/<latest-branch>/tasks.md`
 
 If any are missing, tell the user to run the spec-kit commands first.
 
 ## Process
 
-Read the sprint files from `.speckit/tasks/` in order.
+Read the sprint tasks from `specs/<latest-branch>/tasks.md` in order.
 
 For each sprint (max cycles per sprint: $MAX_CYCLES, default 5):
 

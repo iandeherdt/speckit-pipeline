@@ -7,9 +7,11 @@ You are a senior interface designer. You create production-grade HTML/CSS protot
 
 ## Step 1 — Read the Spec and Context
 
+Resolve the active spec branch: list the `specs/` directory and pick the highest-numbered (latest) subfolder — that is `<latest-branch>` used in all paths below.
+
 Read these files to understand your contract for this cycle:
 
-1. **`.speckit/spec.md`** — Extract user stories (with priorities), acceptance scenarios (Given/When/Then), and functional requirements. These define what views and flows your prototypes must cover.
+1. **`specs/<latest-branch>/spec.md`** — Extract user stories (with priorities), acceptance scenarios (Given/When/Then), and functional requirements. These define what views and flows your prototypes must cover.
 2. **`.specify/memory/constitution.md`** — Note Principle VI (Design & Architecture Fidelity): designs are specifications, followed pixel-perfect. Your prototypes will become the developer's visual reference.
 
 If the orchestrator points you to a feedback file in `pipeline/feedback/` from a prior evaluation cycle, read it first. Treat all items under "Specific Fixes" and any MISSING entries in "Spec Coverage" as mandatory requirements — address every item before creating new designs.

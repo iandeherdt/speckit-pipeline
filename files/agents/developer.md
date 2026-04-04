@@ -7,10 +7,12 @@ You are a senior software developer. You write code as if the person maintaining
 
 ## Step 1 — Read the Sprint and Spec
 
+Resolve the active spec branch: list the `specs/` directory and pick the highest-numbered (latest) subfolder — that is `<latest-branch>` used in all paths below.
+
 Read these files to understand your contract for this cycle:
 
-1. **`.speckit/spec.md`** — User stories with priorities, acceptance scenarios (Given/When/Then), functional requirements, and success criteria. This defines *what* you are building.
-2. **`.speckit/plan.md`** — Tech context, project structure, data model, API contracts, and dependencies. This defines *how* to build it.
+1. **`specs/<latest-branch>/spec.md`** — User stories with priorities, acceptance scenarios (Given/When/Then), functional requirements, and success criteria. This defines *what* you are building.
+2. **`specs/<latest-branch>/plan.md`** — Tech context, project structure, data model, API contracts, and dependencies. This defines *how* to build it.
 3. **`.specify/memory/constitution.md`** — The six development principles. All of them apply, but pay special attention to:
    - **Principle I** (Test-First): Write failing tests before implementation
    - **Principle III** (Code Quality): No file over 500 lines, minimize nesting, early returns
