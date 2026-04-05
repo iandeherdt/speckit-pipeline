@@ -54,7 +54,18 @@
   last 6 months), significant community adoption, no unresolved
   critical security advisories.
 
-### VI. Design & Architecture Fidelity
+### VI. Database Changes via Migrations
+
+- All database schema changes MUST be performed through migrations.
+  Never modify the database directly or edit existing migration files.
+- Each migration MUST be a new, sequentially versioned file that can
+  be applied and rolled back independently.
+- Seed data MUST be maintained in dedicated seed files, not inlined
+  in migrations.
+- Migration files MUST NOT be deleted or modified after they have
+  been applied to any environment.
+
+### VII. Design & Architecture Fidelity
 
 - When a design exists (Figma, mockup, wireframe), it MUST be
   followed to the pixel. Designs are specifications, not
@@ -75,8 +86,10 @@
   (Principle IV).
 - New dependencies MUST be evaluated against existing packages
   and the Library-First principle (Principle V).
+- Database changes MUST go through migrations — no direct schema
+  edits (Principle VI).
 - Visual diff against designs MUST be performed for any UI change
-  (Principle VI).
+  (Principle VII).
 
 ## Governance
 

@@ -24,7 +24,7 @@ Both loops produce structured feedback in `pipeline/feedback/` and log progress 
 ## Prerequisites
 
 - A [spec-kit](https://github.com/iandeherdt/spec-kit) project (with `.specify/integration.json`)
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) with Claude Preview MCP enabled
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
 - Node.js >= 18
 
 ## Installation
@@ -37,12 +37,13 @@ This will:
 - Install agents to `.claude/agents/`
 - Install skills to `.claude/skills/`
 - Merge launch configs into `.claude/launch.json` (dev server on port 3000, design server on port 4444)
-- Add required permissions to `.claude/settings.json`
+- Add required permissions to `.claude/settings.json` (including `mcp__Claude_Preview__*` and `mcp__playwright__*`)
+- Add Playwright MCP server at project scope (for browser-based verification)
 - Append pipeline documentation to `CLAUDE.md`
 - Install an opinionated constitution to `.specify/memory/constitution.md`
 - Create `pipeline/feedback/` for evaluator reports
 
-> **Note on the constitution:** The installer ships an opinionated constitution with 6 principles (Test-First, Security-First, Code Quality, Component Separation, Library-First, Design Fidelity). If your project has the default blank spec-kit template (`[PROJECT_NAME] Constitution`), it will be **replaced automatically**. If you've already written your own constitution, it will be preserved — use `--force` to overwrite. Review `.specify/memory/constitution.md` after install and adjust the principles to fit your project.
+> **Note on the constitution:** The installer ships an opinionated constitution with 7 principles (Test-First, Security-First, Code Quality, Component Separation, Library-First, Database Migrations, Design Fidelity). If your project has the default blank spec-kit template (`[PROJECT_NAME] Constitution`), it will be **replaced automatically**. If you've already written your own constitution, it will be preserved — use `--force` to overwrite. Review `.specify/memory/constitution.md` after install and adjust the principles to fit your project.
 
 Options:
 - `--dry-run` — Preview what would be installed without writing files
@@ -84,6 +85,28 @@ Each loop runs up to 5 cycles per sprint/design. On each cycle:
 4. If the work passes the quality gate, the loop advances. Otherwise it cycles back with the feedback.
 
 Issues marked `[High]` always block — they must be resolved before a sprint can pass.
+
+### Authenticated apps
+
+The evaluator automatically handles apps that require login. When the dev server starts and the evaluator detects a login page or auth redirect, it will:
+
+1. Look for test credentials in `prisma/seed.ts` or `.env.local`
+2. Fill and submit the login form
+3. Confirm authentication before proceeding with browser testing
+
+No extra configuration needed — just make sure your seed data includes a test user.
+
+## Constitution principles
+
+The installed constitution enforces these principles during development and evaluation:
+
+1. **Test-First** — All functionality must have tests. Red-green-refactor.
+2. **Security-First** — Input validation, OWASP guidelines, no committed secrets.
+3. **Code Quality** — Max 500 lines per file, low cognitive complexity, linting passes.
+4. **Component Separation** — UI components in own files, single responsibility.
+5. **Library-First** — Use maintained open-source packages over custom implementations.
+6. **Database Migrations** — All schema changes via migrations. Never edit existing migrations.
+7. **Design Fidelity** — Follow designs to the pixel. Architecture specs are binding.
 
 ## Project structure after install
 
