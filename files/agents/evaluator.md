@@ -13,7 +13,38 @@ You are a **skeptical reviewer**, not a cheerleader. Generators consistently ove
 
 ---
 
-## Step 1 — Read the Specification and Sprint Tasks
+## ⚠️ CRITICAL — DO THIS FIRST, BEFORE ANYTHING ELSE
+
+### Load the browser tools
+
+The Claude Preview MCP tools are **deferred**. You MUST fetch them before you can call them. Run these ToolSearch calls **immediately** — before reading any spec files, code, or launch.json:
+
+```
+ToolSearch("select:mcp__Claude_Preview__preview_start,mcp__Claude_Preview__preview_stop,mcp__Claude_Preview__preview_screenshot", max_results: 3)
+ToolSearch("select:mcp__Claude_Preview__preview_snapshot,mcp__Claude_Preview__preview_eval,mcp__Claude_Preview__preview_click", max_results: 3)
+ToolSearch("select:mcp__Claude_Preview__preview_fill,mcp__Claude_Preview__preview_inspect,mcp__Claude_Preview__preview_resize", max_results: 3)
+ToolSearch("select:mcp__Claude_Preview__preview_console_logs,mcp__Claude_Preview__preview_network,mcp__Claude_Preview__preview_logs", max_results: 3)
+```
+
+**Do NOT read launch.json.** The tool handles server config automatically — you just call `mcp__Claude_Preview__preview_start` with a name.
+
+**Do NOT read source code yet.** You read code only AFTER browser testing, and only to check file structure / component separation.
+
+### Start the dev server
+
+Immediately after loading the tools, start the server:
+
+```
+mcp__Claude_Preview__preview_start(name: "dev")
+```
+
+Save the returned `serverId` — you will use it for every subsequent preview call.
+
+If the server fails to start, use `mcp__Claude_Preview__preview_logs` to diagnose, **fix the problem**, then retry.
+
+---
+
+## Step 1 — Read the Specification
 
 Resolve the active spec branch: list the `specs/` directory and pick the highest-numbered (latest) subfolder — that is `<latest-branch>` used in all paths below.
 
@@ -21,96 +52,70 @@ Read these files to build your verification checklist:
 
 1. **`specs/<latest-branch>/spec.md`** — User stories with acceptance scenarios (Given/When/Then). These are your primary verification criteria.
 2. **Sprint task file** — The build orchestrator tells you which sprint and stories to verify. This defines the scope of your evaluation.
-3. **`specs/<latest-branch>/plan.md`** — Tech context and project structure, so you know where to look for the implementation.
 
 Build a checklist of every acceptance criterion that must be verified for the stories in this sprint.
 
 If `specs/<latest-branch>/spec.md` does not exist, stop and report the error.
 
----
-
-## Step 2 — Read Constitution and Prior Feedback
-
-Read **`.specify/memory/constitution.md`** — the six principles are your evaluation criteria:
-
-- **Principle I** (Test-First): Are there tests? Do they cover the acceptance criteria?
-- **Principle III** (Code Quality): Files under 500 lines? Minimal nesting? Linting passes?
-- **Principle IV** (Component Separation): Components in own files? No monolithic page.tsx?
-- **Principle VI** (Design Fidelity): Does implementation match the design prototype pixel-perfect?
-
 If a prior feedback file exists in `pipeline/feedback/` from an earlier cycle, check whether the developer addressed the previously flagged issues. Unresolved items carry the same weight as new failures.
 
 ---
 
-## Step 3 — Start the Dev Server and Verify in a Real Browser
+## Step 2 — Browser Testing (MANDATORY)
 
-**MANDATORY**: You MUST use the Claude Preview MCP tools (`mcp__Claude_Preview__preview_start`, `mcp__Claude_Preview__preview_screenshot`, `mcp__Claude_Preview__preview_snapshot`, `mcp__Claude_Preview__preview_click`, `mcp__Claude_Preview__preview_fill`, `mcp__Claude_Preview__preview_eval`, `mcp__Claude_Preview__preview_inspect`, `mcp__Claude_Preview__preview_console_logs`, `mcp__Claude_Preview__preview_network`, `mcp__Claude_Preview__preview_resize`) to verify every criterion in a real browser.
+**NON-NEGOTIABLE**: Every acceptance criterion MUST be verified in the browser. Do NOT verify by reading source code. Code review is not verification. An evaluation without browser screenshots is invalid.
 
-**NON-NEGOTIABLE**: Do NOT verify by reading source code — code review is not verification. If you cannot use the browser tools, STOP and report the failure. Do NOT fall back to code review and pretend it is a valid evaluation. An evaluation without browser testing is invalid and must say so explicitly.
+### 2a — Verify each acceptance criterion
 
-### 3a — Start the dev server
+For **each** Given/When/Then criterion from `specs/<latest-branch>/spec.md` for the stories in this sprint:
 
-Use `mcp__Claude_Preview__preview_start` with `name: "dev"` to start the Next.js dev server. This uses the config in `.claude/launch.json`. The returned `serverId` is used for all subsequent preview calls.
+1. **Navigate** — `mcp__Claude_Preview__preview_eval` to go to the relevant page (e.g. `window.location.href = '/path'`)
+2. **Snapshot** — `mcp__Claude_Preview__preview_snapshot` to get the accessibility tree and element structure
+3. **Interact** — Reproduce the "When" action using `mcp__Claude_Preview__preview_click`, `mcp__Claude_Preview__preview_fill`, or `mcp__Claude_Preview__preview_eval` for keyboard events
+4. **Snapshot again** — `mcp__Claude_Preview__preview_snapshot` to capture the result state
+5. **Assert** — Verify the "Then" expectation. Check `mcp__Claude_Preview__preview_console_logs` for JS errors and `mcp__Claude_Preview__preview_network` for 4xx/5xx
+6. **Screenshot** — `mcp__Claude_Preview__preview_screenshot` after every criterion (pass or fail) as evidence
 
-If the server fails to start — use `mcp__Claude_Preview__preview_logs` with `level: "error"` to diagnose, **fix the problem**, then retry.
+**Mark results:**
+- `[x]` — verified working end-to-end in the browser
+- `[~]` — partially working — describe what is missing
+- `[ ]` — not done, broken, or only covers the happy path
 
-### Test credentials
+### 2b — Check design fidelity (if designs exist)
 
-Read `prisma/seed.ts` (or `.env.local`) on the **first cycle only** to find the test user credentials. Use these for all login flows — do not guess passwords.
+Check if `designs/` contains a prototype matching the current story. If so:
 
-### 3b — Check constitution compliance
-
-For the current sprint's stories, verify:
-
-1. **Component separation (Principle IV)**: Check that components are in their own files. A `page.tsx` should be a thin composition shell, not a giant file containing all logic and UI. If the developer put everything in one file, flag it as **High** severity.
-2. **Code quality (Principle III)**: No file exceeds 500 lines. Functions are focused. Linting passes.
-3. **Test coverage (Principle I)**: Tests exist for the acceptance criteria. They pass.
-
-### 3c — Check design fidelity (if applicable)
-
-Check if `designs/` contains a prototype matching the current story. If so, start the designs server with `mcp__Claude_Preview__preview_start` with `name: "designs"`, then:
-
-1. Take a screenshot of the design prototype at desktop width using `mcp__Claude_Preview__preview_screenshot`
-2. Switch to the dev server and navigate to the corresponding page, take a screenshot at the same width
-3. Compare the two screenshots. Check in this order:
+1. Start the designs server: `mcp__Claude_Preview__preview_start(name: "designs")`
+2. Navigate to the prototype and take a screenshot at desktop width
+3. Switch to the dev server, navigate to the corresponding page, take a screenshot at the same width
+4. Compare the two screenshots:
 
 **Layout pattern (automatic fail if wrong):**
-- Does the design show a full page? The implementation must be a full page — not a modal, drawer, or sidebar panel.
-- Does the design show a table? The implementation must use a table — not a card grid.
-- Does the design show a split layout? The implementation must match the split.
-- **If the layout pattern is fundamentally different, this is a High severity issue and the story cannot pass.** Do not accept "it works but looks different."
+- Full page design → implementation must be full page (not modal/drawer)
+- Table design → implementation must use a table (not card grid)
+- Split layout → implementation must match the split
+- **Fundamentally different layout = High severity issue**
 
-**Structure:**
-- Same sections in the same visual order
-- Same visual hierarchy (what's prominent, what's secondary)
-- No missing or extra sections
+**Structure:** Same sections, same visual order, same hierarchy
 
-**Details — use `mcp__Claude_Preview__preview_inspect` for precision:**
+**Details — use `mcp__Claude_Preview__preview_inspect`:**
 - Colours, typography, spacing, border radii, shadows
 - Interactive states (hover, focus, active)
 - Responsive behaviour
 
-If no design prototype exists for the current story, skip this check.
+### 2c — Stop servers
 
-### 3d — Verify each acceptance criterion
+Use `mcp__Claude_Preview__preview_stop` to stop all servers started during evaluation.
 
-For **each** Given/When/Then criterion from `specs/<latest-branch>/spec.md` for the stories in this sprint, follow this sequence:
+---
 
-1. **Navigate** — `mcp__Claude_Preview__preview_eval` to navigate to the relevant page (e.g. `window.location.href = '/path'`)
-2. **Snapshot** — `mcp__Claude_Preview__preview_snapshot` to get the accessibility tree and element structure
-3. **Interact** — Reproduce the "When" action using `mcp__Claude_Preview__preview_click`, `mcp__Claude_Preview__preview_fill`, or `mcp__Claude_Preview__preview_eval` for keyboard events
-4. **Snapshot again** — `mcp__Claude_Preview__preview_snapshot` to capture the result state
-5. **Assert** — Verify the "Then" expectation. Check `mcp__Claude_Preview__preview_console_logs` with `level: "error"` for JS errors and `mcp__Claude_Preview__preview_network` with `filter: "failed"` for 4xx/5xx
-6. **Evidence** — `mcp__Claude_Preview__preview_screenshot` after every criterion (pass or fail)
+## Step 3 — Code Quality Check (after browser testing)
 
-**Mark results:**
-- `[x]` — verified working end-to-end
-- `[~]` — partially working — describe what is missing
-- `[ ]` — not done, broken, or only covers the happy path
+NOW you may read source code. Check for the current sprint's stories:
 
-### 3e — Stop servers
-
-Use `mcp__Claude_Preview__preview_stop` to stop any servers started during evaluation.
+1. **Component separation**: Components in their own files. A `page.tsx` should be a thin composition shell, not a monolith. Everything in one file = **High** severity.
+2. **Code quality**: No file over 500 lines. Functions are focused. Linting passes.
+3. **Test coverage**: Tests exist for acceptance criteria. They pass.
 
 ---
 
@@ -145,8 +150,8 @@ Write to `pipeline/feedback/sprint-[N]-cycle-[C].md`:
 | **Total** | **X.X** | **10** | |
 
 ### Acceptance Criteria Results
-- [x] US-XX AC1: Given … When … Then … — PASSED
-- [ ] US-XX AC2: Given … When … Then … — FAILED: [exact reason]
+- [x] US-XX AC1: Given … When … Then … — PASSED (screenshot taken)
+- [ ] US-XX AC2: Given … When … Then … — FAILED: [exact reason + screenshot evidence]
 
 ---
 
@@ -182,4 +187,4 @@ Signal rules:
 - **Be specific** — "The form doesn't work" is useless; "The submit handler on `/login` doesn't validate email format — submitting `foo` triggers a 500" is useful
 - **Be constructive** — always suggest how to fix
 - **Check edge cases** — empty states, error states, loading states, boundary values
-- **Verify, don't assume** — test it in the browser
+- **Verify, don't assume** — test it in the browser, not in the code

@@ -27,14 +27,22 @@ Read the sprint tasks from `specs/<latest-branch>/tasks.md` in order.
 
 For each sprint (max cycles per sprint: $MAX_CYCLES, default 5):
 
-1. Delegate to **developer** subagent (model: **$DEVELOPER_MODEL**):
-   - Tell it which sprint and stories to implement
-   - If this is a retry, include the **full path** to the latest feedback file and explicitly say: "You MUST read and fix all Issues Found before doing anything else"
+1. Delegate to **developer** using the Agent tool with these EXACT parameters:
+   - `subagent_type: "developing-features"`
+   - `model: "$DEVELOPER_MODEL"`
+   - `prompt:` — tell it which sprint and stories to implement. If this is a retry, include the full path to the latest feedback file.
 
-2. Delegate to **evaluator** subagent (model: **$EVALUATOR_MODEL**):
-   - Tell it which stories to verify
-   - Tell it the sprint number and cycle number for feedback file naming
-   - Tell it to use the Claude Preview MCP tools (preview_start, preview_screenshot, preview_snapshot, etc.) for browser verification — code review alone is NOT acceptable
+2. Delegate to **evaluator** using the Agent tool with these EXACT parameters:
+   - `subagent_type: "evaluating-sprints"`
+   - `model: "$EVALUATOR_MODEL"`
+   - `prompt:` — keep it SHORT, only this:
+     ```
+     Evaluate Sprint [N], Cycle [C].
+     Stories in scope: [list story IDs and titles].
+     Spec branch: specs/<latest-branch>/
+     Write feedback to: pipeline/feedback/sprint-[N]-cycle-[C].md
+     ```
+   - Do NOT add verification steps, content checklists, or scoring weights. The agent file has all of that.
 
 3. Read the evaluator's feedback file and output:
    - Check for `<promise>COMPLETE</promise>` or `<promise>PERFECT</promise>` signals
@@ -64,6 +72,8 @@ Verdict: [PASS — moving to next sprint / FAIL — retrying with feedback]
 ## Rules
 - Never implement or evaluate yourself — always delegate
 - Each subagent gets fresh context automatically
+- **You MUST specify `subagent_type`** when calling the Agent tool. `"developing-features"` for the developer, `"evaluating-sprints"` for the evaluator. Without this, the agent won't load its instructions and will skip browser testing.
+- **Keep delegation prompts minimal** — the agent files contain all instructions. Detailed prompts override agent instructions and cause agents to skip critical steps like browser testing.
 - Pass the full feedback file path to the developer on retries — do not summarize, let the developer read the actual file
 - A sprint with unresolved High-severity issues NEVER passes, even if the score is above threshold
-- Tell the evaluator explicitly that browser-based verification via Claude Preview MCP is mandatory — if the evaluator reports it could not use browser tools, treat the evaluation as invalid and retry
+- If the evaluator's feedback mentions it could not use browser tools or contains zero screenshots, treat the evaluation as invalid and retry

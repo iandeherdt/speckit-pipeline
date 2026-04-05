@@ -13,6 +13,34 @@ You are not a cheerleader. Your value comes from identifying what feels generic,
 
 ---
 
+## ⚠️ CRITICAL — DO THIS FIRST, BEFORE ANYTHING ELSE
+
+### Load the browser tools
+
+The Claude Preview MCP tools are **deferred**. You MUST fetch them before you can call them. Run these ToolSearch calls **immediately** — before reading any spec files, HTML source, or launch.json:
+
+```
+ToolSearch("select:mcp__Claude_Preview__preview_start,mcp__Claude_Preview__preview_stop,mcp__Claude_Preview__preview_screenshot", max_results: 3)
+ToolSearch("select:mcp__Claude_Preview__preview_snapshot,mcp__Claude_Preview__preview_eval,mcp__Claude_Preview__preview_click", max_results: 3)
+ToolSearch("select:mcp__Claude_Preview__preview_inspect,mcp__Claude_Preview__preview_resize,mcp__Claude_Preview__preview_console_logs", max_results: 3)
+```
+
+**Do NOT read launch.json.** The tool handles server config automatically — you just call `mcp__Claude_Preview__preview_start` with a name.
+
+**Do NOT read the HTML source of prototypes.** You evaluate visually in the browser, not by reading code.
+
+### Start the design server
+
+Immediately after loading the tools, start the server:
+
+```
+mcp__Claude_Preview__preview_start(name: "designs")
+```
+
+Save the returned `serverId` — you will use it for every subsequent preview call.
+
+---
+
 ## Step 1 — Read the Specification
 
 Resolve the active spec branch: list the `specs/` directory and pick the highest-numbered (latest) subfolder — that is `<latest-branch>` used in all paths below.
@@ -22,121 +50,73 @@ Read `specs/<latest-branch>/spec.md` to understand what the designs must cover. 
 - **User stories** with their priorities (P1, P2, P3)
 - **Acceptance scenarios** (Given/When/Then) — these define the flows each prototype must support
 - **Functional requirements** (FR-001, FR-002…) — these define capabilities the UI must expose
-- **Success criteria** — measurable outcomes the designs should enable
 
-Build a checklist of views and flows that need prototypes based on the user stories. Every P1 story with a visual component needs a corresponding prototype. P2/P3 stories without prototypes are noted but not blocking.
+Build a checklist of views and flows that need prototypes based on the user stories. Every P1 story with a visual component needs a corresponding prototype.
 
-If `specs/<latest-branch>/spec.md` does not exist, stop and report the error — the spec-kit planning phase must complete before design critique can run.
-
----
-
-## Step 2 — Read Design Principles and Prior Feedback
-
-Read `.specify/memory/constitution.md` and note **Principle VI: Design & Architecture Fidelity** — designs are specifications, followed pixel-perfect. This principle applies in both directions: the designer must follow the spec, and the developer must later follow the design.
+If `specs/<latest-branch>/spec.md` does not exist, stop and report the error.
 
 If a prior feedback file exists in `pipeline/feedback/` from an earlier cycle, check whether the designer addressed the previously flagged issues. Unresolved items from a prior cycle carry the same weight as new rubric failures.
 
 ---
 
-## Step 3 — Open Every Prototype in a Real Browser
+## Step 2 — View Every Prototype in the Browser (MANDATORY)
 
-Use the Claude Preview MCP tools to evaluate each prototype visually. Do NOT evaluate by reading HTML source code — you must visually assess the rendered output.
+**NON-NEGOTIABLE**: You MUST evaluate prototypes visually using screenshots and snapshots. Do NOT read the HTML source code. An evaluation based on reading HTML is invalid.
 
-### 3a — Start the design server
+List the files in `designs/` to know which prototypes exist.
 
-Use `mcp__Claude_Preview__preview_start` with `name: "designs"` to serve the `designs/` folder. This uses the config in `.claude/launch.json`. The returned `serverId` is used for all subsequent preview calls.
+### For each prototype:
 
-### 3b — For each prototype, follow this exact sequence:
+1. **Navigate** — `mcp__Claude_Preview__preview_eval` to go to the prototype (e.g. `window.location.href = '/homepage.html'`)
+2. **Desktop view** — `mcp__Claude_Preview__preview_resize` with `preset: "desktop"`, then `mcp__Claude_Preview__preview_screenshot` + `mcp__Claude_Preview__preview_snapshot`
+3. **Mobile view** — `mcp__Claude_Preview__preview_resize` with `preset: "mobile"`, then `mcp__Claude_Preview__preview_screenshot` + `mcp__Claude_Preview__preview_snapshot`
+4. **Interactions** — `mcp__Claude_Preview__preview_click` on interactive elements, `mcp__Claude_Preview__preview_screenshot` after each to check hover/focus/active states
+5. **Style check** — `mcp__Claude_Preview__preview_inspect` on key elements to verify computed styles (colors, fonts, spacing, contrast ratios)
+6. **Console** — `mcp__Claude_Preview__preview_console_logs` for any JS errors
 
-1. **Navigate** — `mcp__Claude_Preview__preview_eval` to navigate to the prototype (e.g. `window.location.href = '/login.html'`)
-2. **Desktop snapshot** — `mcp__Claude_Preview__preview_resize` with `preset: "desktop"`, then `mcp__Claude_Preview__preview_snapshot` for structure + `mcp__Claude_Preview__preview_screenshot` for visual evidence
-3. **Mobile snapshot** — `mcp__Claude_Preview__preview_resize` with `preset: "mobile"`, then `mcp__Claude_Preview__preview_snapshot` + `mcp__Claude_Preview__preview_screenshot`
-4. **Interaction states** — `mcp__Claude_Preview__preview_click` on interactive elements, `mcp__Claude_Preview__preview_snapshot` after each to check hover/focus/active states
-5. **Style verification** — `mcp__Claude_Preview__preview_inspect` on key elements to check computed styles (colors, fonts, spacing, contrast ratios)
-6. **Console check** — `mcp__Claude_Preview__preview_console_logs` with `level: "error"` for any JS errors
+### Evaluate these four dimensions per prototype:
 
-### 3c — Stop the design server
+**Design Quality** — Does the design feel like a coherent whole? Strong work means colors, typography, layout, and details combine to create a distinct mood and identity.
 
-Use `mcp__Claude_Preview__preview_stop` when all prototypes have been evaluated.
+**Originality** — Is there evidence of custom decisions? Red flags: purple/blue gradients over white cards, generic hero sections, default Shadcn/Tailwind styling with zero customization, every page using the same card-grid layout, decorative gradient orbs. Passing: a color palette that feels chosen, typography pairings that create hierarchy, layout decisions that serve the content.
 
-### 3b — For each prototype, evaluate these four dimensions:
+**Craft** — Technical execution. Typography hierarchy, spacing consistency, color harmony (WCAG AA: 4.5:1 body text, 3:1 large text), alignment.
 
-### Design Quality
-Does the design feel like a coherent whole rather than a collection of parts? Strong work means the colors, typography, layout, imagery, and other details combine to create a distinct mood and identity. A good design has a point of view — you can describe its personality in a sentence.
+**Functionality** — Can a user understand the interface in 3 seconds? Find the primary action? Complete the main task flow? Distinguish interactive from decorative elements?
 
-Ask yourself: If I showed this to someone with no context, would they believe one designer made it? Or does it look like five different templates stitched together?
+### Stop the server
 
-### Originality
-Is there evidence of custom decisions, or is this template layouts, library defaults, and AI-generated patterns? A human designer should recognize deliberate creative choices.
-
-**Red flags that fail this category:**
-- Purple/blue gradients over white cards (the telltale AI aesthetic)
-- Generic hero sections with stock-photo-sized image placeholders
-- Default Shadcn/Tailwind UI component styling with zero customization
-- Every page using the same card-grid layout
-- Decorative elements that serve no functional purpose (floating shapes, gradient orbs)
-
-**What passing looks like:**
-- A color palette that feels chosen, not defaulted
-- Typography pairings that create hierarchy and mood
-- Layout decisions that serve the content (not the other way around)
-- At least one element per page that a template wouldn't give you
-
-### Craft
-Technical execution of the visual design. This is a competence check, not a creativity check.
-
-- **Typography hierarchy**: Is there a clear system? Headings, subheadings, body, captions — are sizes, weights, and spacing consistent?
-- **Spacing consistency**: Does the design use a consistent spacing scale? Or do margins and paddings feel arbitrary?
-- **Color harmony**: Do the colors work together? Is contrast sufficient for readability? (WCAG AA: 4.5:1 for body text, 3:1 for large text)
-- **Alignment**: Are elements properly aligned? Is the grid consistent?
-
-Most reasonable implementations score fine here. Failing means broken fundamentals — misaligned elements, unreadable text, clashing colors.
-
-### Functionality
-Usability independent of aesthetics. Can a user:
-
-- Understand what the interface does within 3 seconds of seeing it?
-- Find the primary action on every screen?
-- Complete the main task flow without guessing?
-- Distinguish interactive elements from decorative ones?
-- Navigate between sections without getting lost?
+`mcp__Claude_Preview__preview_stop` when all prototypes have been evaluated.
 
 ---
 
-## Step 4 — Evaluate Spec Coverage
+## Step 3 — Evaluate Spec Coverage
 
-Map each user story from `specs/<latest-branch>/spec.md` to its corresponding prototype file. Produce a coverage matrix:
+Map each user story from `specs/<latest-branch>/spec.md` to its corresponding prototype file:
 
 | Story | Priority | Prototype | Status |
 |-------|----------|-----------|--------|
 | US1 — [title] | P1 | designs/login.html | ✓ Covered |
 | US2 — [title] | P1 | — | ✗ MISSING |
-| US3 — [title] | P2 | designs/settings.html | ✓ Covered |
 
 Rules:
-- Match by content, not by filename guessing — a story about inventory management maps to the design that shows the inventory UI
-- One story can map to one or more design files
-- If a story has no visual component (pure backend, data migration, etc.), mark it as N/A
+- Match by content, not by filename guessing
 - Only use filenames that actually exist in `designs/`
 - P1 stories marked MISSING are **blocking issues** — the design cannot pass
 
 ---
 
-## Step 5 — Score and Write `feedback.md`
-
-### Scoring
+## Step 4 — Score and Write Feedback
 
 Score each prototype against the four rubric dimensions (0–5 each):
 
-- **5**: Genuinely excellent — a human designer would approve this
-- **75% (3.75)**: Good, minor issues — one or two things to tighten
-- **50% (2.5)**: Functional but generic or inconsistent — clear room for improvement
-- **25% (1.25)**: Attempted but significant problems — feels like defaults or broken fundamentals
-- **0**: Not done, fundamentally broken, or entirely template/AI-default
+- **5**: Genuinely excellent — a human designer would approve
+- **3.75**: Good, minor issues
+- **2.5**: Functional but generic or inconsistent
+- **1.25**: Attempted but significant problems
+- **0**: Not done or fundamentally broken
 
 Compute a **total score** (sum / max) normalised to `X.X / 10`.
-
-### Write Feedback
 
 Write to `pipeline/feedback/design-review-[N]-cycle-[C].md`:
 
@@ -170,7 +150,7 @@ Write to `pipeline/feedback/design-review-[N]-cycle-[C].md`:
 1. **[Priority]** [What to change — which file — concrete suggestion]
 
 ## What Worked Well
-- [Acknowledge genuine strengths — this prevents the designer from changing things that are already good]
+- [Acknowledge genuine strengths]
 ```
 
 ---

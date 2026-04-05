@@ -32,13 +32,21 @@ Max cycles: $MAX_CYCLES, default 5.
 
 For each cycle:
 
-1. Delegate to **designer** subagent (model: **$DESIGNER_MODEL**):
-   - Tell it which user stories need prototypes
-   - If this is a retry, point it to the latest feedback file in `pipeline/feedback/`
+1. Delegate to **designer** using the Agent tool with these EXACT parameters:
+   - `subagent_type: "designing-interfaces"`
+   - `model: "$DESIGNER_MODEL"`
+   - `prompt:` — tell it which user stories need prototypes and the spec branch path. If this is a retry, include the feedback file path.
 
-2. Delegate to **design-critique** subagent (model: **$CRITIC_MODEL**):
-   - Tell it to evaluate all prototypes in `designs/`
-   - Tell it the cycle number for feedback file naming
+2. Delegate to **design-critique** using the Agent tool with these EXACT parameters:
+   - `subagent_type: "critiquing-designs"`
+   - `model: "$CRITIC_MODEL"`
+   - `prompt:` — keep it SHORT, only this:
+     ```
+     Evaluate design prototypes, Cycle [C].
+     Spec branch: specs/<latest-branch>/
+     Write feedback to: pipeline/feedback/design-review-[N]-cycle-[C].md
+     ```
+   - Do NOT add rubrics, evaluation steps, or scoring. The agent file has all of that.
 
 3. Read the critic's output:
    - PERFECT → log success, stop
@@ -63,4 +71,7 @@ Issues: [summary if FAIL]
 ## Rules
 - Never design or critique yourself — always delegate
 - Each subagent gets fresh context automatically
+- **You MUST specify `subagent_type`** when calling the Agent tool. `"designing-interfaces"` for the designer, `"critiquing-designs"` for the critic. Without this, the agent won't load its instructions and will skip browser testing.
+- **Keep delegation prompts minimal** — the agent files contain all instructions. Detailed prompts override agent instructions and cause agents to skip critical steps like browser testing.
 - Pass feedback file paths to the designer on retries
+- If the critic's feedback mentions it could not use browser tools or contains zero screenshots, treat the evaluation as invalid and retry

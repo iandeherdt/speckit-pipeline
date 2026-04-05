@@ -14,7 +14,7 @@ Run `/design` to start the design/eval loop. The orchestrator reads spec-kit's t
 Run `/build` to start the dev/eval loop. The orchestrator reads spec-kit's task list and works through each sprint, verifying via Playwright after each one.
 
 ### Key directories
-- `.speckit/` — spec-kit artifacts (PRD, plan, tasks)
+- `specs/<latest-branch>/` — spec-kit artifacts (spec, plan, tasks) — always use the highest-numbered subfolder under `specs/`
 - `pipeline/feedback/` — evaluator reports per sprint/cycle
 - `pipeline/build-log.md` — full progress log
 
