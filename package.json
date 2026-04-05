@@ -1,6 +1,6 @@
 {
   "name": "speckit-pipeline",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "description": "Build/design pipeline extension for spec-kit projects. Adds dev/eval and designer/critic loops with Claude Preview MCP browser verification.",
   "type": "module",
   "bin": {

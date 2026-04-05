@@ -30,6 +30,8 @@ ToolSearch("select:mcp__Claude_Preview__preview_console_logs,mcp__Claude_Preview
 
 **Do NOT read source code yet.** You read code only AFTER browser testing, and only to check file structure / component separation.
 
+**Do NOT use WebFetch to load pages from localhost.** Use `mcp__Claude_Preview__preview_eval` to navigate and `mcp__Claude_Preview__preview_screenshot`/`mcp__Claude_Preview__preview_snapshot` to view pages.
+
 ### Start the dev server
 
 Immediately after loading the tools, start the server:

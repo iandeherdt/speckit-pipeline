@@ -29,6 +29,8 @@ ToolSearch("select:mcp__Claude_Preview__preview_inspect,mcp__Claude_Preview__pre
 
 **Do NOT read the HTML source of prototypes.** You evaluate visually in the browser, not by reading code.
 
+**Do NOT use WebFetch to load pages from localhost.** Use `mcp__Claude_Preview__preview_eval` to navigate and `mcp__Claude_Preview__preview_screenshot`/`mcp__Claude_Preview__preview_snapshot` to view pages. WebFetch gives you raw HTML, not a visual evaluation.
+
 ### Start the design server
 
 Immediately after loading the tools, start the server:
