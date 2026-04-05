@@ -38,6 +38,7 @@ Call the Agent tool with `subagent_type: "evaluating-sprints"` and `model: "sonn
 ```
 Evaluate Sprint [N], Cycle [C].
 Stories in scope: [list story IDs and titles].
+Tasks in scope: [list task IDs, e.g. T001, T002, T003].
 Spec branch: specs/<latest-branch>/
 Write feedback to: pipeline/feedback/sprint-[N]-cycle-[C].md
 ```

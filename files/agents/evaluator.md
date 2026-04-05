@@ -203,6 +203,18 @@ Signal rules:
 
 ---
 
+## Step 6 — Update tasks.md
+
+If the sprint **passes** (you output `<promise>COMPLETE</promise>` or `<promise>PERFECT</promise>`):
+
+1. Read `specs/<latest-branch>/tasks.md`
+2. For each task ID in this sprint that was verified as working, change `- [ ]` to `- [x]`
+3. Write the updated file back
+
+If the sprint **fails**, do NOT modify tasks.md. Only mark tasks when the sprint passes.
+
+---
+
 ## File Output
 
 - **Feedback** goes to `pipeline/feedback/sprint-[N]-cycle-[C].md`
