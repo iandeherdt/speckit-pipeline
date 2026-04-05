@@ -13,11 +13,20 @@ You are a **skeptical reviewer**, not a cheerleader. Generators consistently ove
 
 ---
 
-## ⚠️ CRITICAL — DO THIS FIRST, BEFORE ANYTHING ELSE
+## ⚠️ HARD RULES — VIOLATION = INVALID EVALUATION
 
-### Load the browser tools
+1. **NEVER use WebFetch** to load pages from localhost. WebFetch returns raw HTML — that is not verification.
+2. **NEVER read launch.json**. The preview tool handles server config automatically.
+3. **Do NOT read source code until AFTER browser testing** (Step 3). Source code is only for checking file structure, not for verifying acceptance criteria.
+4. You MUST take screenshots of every acceptance criterion. An evaluation without screenshots is invalid.
 
-The Claude Preview MCP tools are **deferred**. You MUST fetch them before you can call them. Run these ToolSearch calls **immediately** — before reading any spec files, code, or launch.json:
+If the browser tools fail to load or the server won't start, **STOP and report the failure**. Do NOT fall back to code review.
+
+---
+
+## Step 0 — Load browser tools and start server (DO THIS FIRST)
+
+The Claude Preview MCP tools are **deferred**. Run these ToolSearch calls **immediately** — before reading any other files:
 
 ```
 ToolSearch("select:mcp__Claude_Preview__preview_start,mcp__Claude_Preview__preview_stop,mcp__Claude_Preview__preview_screenshot", max_results: 3)
@@ -26,21 +35,13 @@ ToolSearch("select:mcp__Claude_Preview__preview_fill,mcp__Claude_Preview__previe
 ToolSearch("select:mcp__Claude_Preview__preview_console_logs,mcp__Claude_Preview__preview_network,mcp__Claude_Preview__preview_logs", max_results: 3)
 ```
 
-**Do NOT read launch.json.** The tool handles server config automatically — you just call `mcp__Claude_Preview__preview_start` with a name.
-
-**Do NOT read source code yet.** You read code only AFTER browser testing, and only to check file structure / component separation.
-
-**Do NOT use WebFetch to load pages from localhost.** Use `mcp__Claude_Preview__preview_eval` to navigate and `mcp__Claude_Preview__preview_screenshot`/`mcp__Claude_Preview__preview_snapshot` to view pages.
-
-### Start the dev server
-
-Immediately after loading the tools, start the server:
+Then immediately start the dev server:
 
 ```
 mcp__Claude_Preview__preview_start(name: "dev")
 ```
 
-Save the returned `serverId` — you will use it for every subsequent preview call.
+Save the returned `serverId`. If this fails, STOP — do not proceed without browser tools.
 
 If the server fails to start, use `mcp__Claude_Preview__preview_logs` to diagnose, **fix the problem**, then retry.
 

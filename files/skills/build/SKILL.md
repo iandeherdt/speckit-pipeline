@@ -27,30 +27,45 @@ Read the sprint tasks from `specs/<latest-branch>/tasks.md` in order.
 
 For each sprint (max cycles per sprint: $MAX_CYCLES, default 5):
 
-1. Delegate to **developer** using the Agent tool with these EXACT parameters:
-   - `subagent_type: "developing-features"`
-   - `model: "$DEVELOPER_MODEL"`
-   - `prompt:` — tell it which sprint and stories to implement. If this is a retry, include the full path to the latest feedback file.
+### Step 1 — Developer
 
-2. Delegate to **evaluator** using the Agent tool with these EXACT parameters:
-   - `subagent_type: "evaluating-sprints"`
-   - `model: "$EVALUATOR_MODEL"`
-   - `prompt:` — keep it SHORT, only this:
-     ```
-     Evaluate Sprint [N], Cycle [C].
-     Stories in scope: [list story IDs and titles].
-     Spec branch: specs/<latest-branch>/
-     Write feedback to: pipeline/feedback/sprint-[N]-cycle-[C].md
-     ```
-   - Do NOT add verification steps, content checklists, or scoring weights. The agent file has all of that.
+Call the Agent tool with **exactly** these parameters (copy verbatim):
 
-3. Read the evaluator's feedback file and output:
-   - Check for `<promise>COMPLETE</promise>` or `<promise>PERFECT</promise>` signals
-   - **Also read the feedback file** — do NOT just check the signal:
-     - If there are any **[High]** severity issues, the sprint does NOT pass regardless of score. Loop back to step 1.
-     - If **Unresolved Issues** from a prior cycle are still listed, the sprint does NOT pass. Loop back to step 1.
-   - PASS (signal present, no High issues, no unresolved carry-overs) → log success, move to next sprint
-   - FAIL → log failure with specific issues, loop back to step 1
+```json
+{
+  "subagent_type": "developing-features",
+  "model": "sonnet",
+  "description": "Sprint [N] developer",
+  "prompt": "Implement Sprint [N], Cycle [C].\nStories in scope: [list].\nSpec branch: specs/<latest-branch>/\n[If retry: Read feedback at pipeline/feedback/sprint-[N]-cycle-[C-1].md FIRST and fix all issues before doing anything else.]"
+}
+```
+
+### Step 2 — Evaluator
+
+Call the Agent tool with **exactly** these parameters (copy verbatim):
+
+```json
+{
+  "subagent_type": "evaluating-sprints",
+  "model": "opus",
+  "description": "Sprint [N] evaluator",
+  "prompt": "Evaluate Sprint [N], Cycle [C].\nStories in scope: [list].\nSpec branch: specs/<latest-branch>/\nWrite feedback to: pipeline/feedback/sprint-[N]-cycle-[C].md"
+}
+```
+
+**⚠️ The `subagent_type` parameter is MANDATORY.** Without it, the agent runs as general-purpose and will NOT use browser tools. If you omit `subagent_type`, the evaluation will be a code review instead of browser testing — which is invalid.
+
+Do NOT add verification steps, content checklists, or scoring weights to the prompt. The agent file has all of that.
+
+### Step 3 — Check results
+
+Read the evaluator's feedback file and output:
+- Check for `<promise>COMPLETE</promise>` or `<promise>PERFECT</promise>` signals
+- **Also read the feedback file** — do NOT just check the signal:
+  - If there are any **[High]** severity issues, the sprint does NOT pass regardless of score. Loop back to Step 1.
+  - If **Unresolved Issues** from a prior cycle are still listed, the sprint does NOT pass. Loop back to Step 1.
+- PASS (signal present, no High issues, no unresolved carry-overs) → log success, move to next sprint
+- FAIL → log failure with specific issues, loop back to Step 1
 
 ## Logging
 
@@ -72,8 +87,8 @@ Verdict: [PASS — moving to next sprint / FAIL — retrying with feedback]
 ## Rules
 - Never implement or evaluate yourself — always delegate
 - Each subagent gets fresh context automatically
-- **You MUST specify `subagent_type`** when calling the Agent tool. `"developing-features"` for the developer, `"evaluating-sprints"` for the evaluator. Without this, the agent won't load its instructions and will skip browser testing.
-- **Keep delegation prompts minimal** — the agent files contain all instructions. Detailed prompts override agent instructions and cause agents to skip critical steps like browser testing.
-- Pass the full feedback file path to the developer on retries — do not summarize, let the developer read the actual file
+- **`subagent_type` is MANDATORY** — `"developing-features"` for developer, `"evaluating-sprints"` for evaluator. Omitting it causes agents to skip browser testing.
+- Keep delegation prompts minimal — the agent files contain all instructions
+- Pass the full feedback file path to the developer on retries
 - A sprint with unresolved High-severity issues NEVER passes, even if the score is above threshold
 - If the evaluator's feedback mentions it could not use browser tools or contains zero screenshots, treat the evaluation as invalid and retry

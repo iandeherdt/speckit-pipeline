@@ -32,26 +32,42 @@ Max cycles: $MAX_CYCLES, default 5.
 
 For each cycle:
 
-1. Delegate to **designer** using the Agent tool with these EXACT parameters:
-   - `subagent_type: "designing-interfaces"`
-   - `model: "$DESIGNER_MODEL"`
-   - `prompt:` — tell it which user stories need prototypes and the spec branch path. If this is a retry, include the feedback file path.
+### Step 1 — Designer
 
-2. Delegate to **design-critique** using the Agent tool with these EXACT parameters:
-   - `subagent_type: "critiquing-designs"`
-   - `model: "$CRITIC_MODEL"`
-   - `prompt:` — keep it SHORT, only this:
-     ```
-     Evaluate design prototypes, Cycle [C].
-     Spec branch: specs/<latest-branch>/
-     Write feedback to: pipeline/feedback/design-review-[N]-cycle-[C].md
-     ```
-   - Do NOT add rubrics, evaluation steps, or scoring. The agent file has all of that.
+Call the Agent tool with **exactly** these parameters (copy verbatim):
 
-3. Read the critic's output:
-   - PERFECT → log success, stop
-   - COMPLETE → log success, stop
-   - Neither → log failure, loop back to step 1
+```json
+{
+  "subagent_type": "designing-interfaces",
+  "model": "sonnet",
+  "description": "Design cycle [C] designer",
+  "prompt": "Create design prototypes, Cycle [C].\nStories in scope: [list].\nSpec branch: specs/<latest-branch>/\n[If retry: Read feedback at pipeline/feedback/design-review-[N]-cycle-[C-1].md FIRST and fix all issues.]"
+}
+```
+
+### Step 2 — Design Critique
+
+Call the Agent tool with **exactly** these parameters (copy verbatim):
+
+```json
+{
+  "subagent_type": "critiquing-designs",
+  "model": "opus",
+  "description": "Design cycle [C] critique",
+  "prompt": "Evaluate design prototypes, Cycle [C].\nSpec branch: specs/<latest-branch>/\nWrite feedback to: pipeline/feedback/design-review-[N]-cycle-[C].md"
+}
+```
+
+**⚠️ The `subagent_type` parameter is MANDATORY.** Without it, the agent runs as general-purpose and will NOT use browser tools. If you omit `subagent_type`, the evaluation will be HTML source reading instead of visual browser testing — which is invalid.
+
+Do NOT add rubrics, evaluation steps, or scoring to the prompt. The agent file has all of that.
+
+### Step 3 — Check results
+
+Read the critic's output:
+- PERFECT → log success, stop
+- COMPLETE → log success, stop
+- Neither → log failure, loop back to Step 1
 
 ## Logging
 
@@ -71,7 +87,7 @@ Issues: [summary if FAIL]
 ## Rules
 - Never design or critique yourself — always delegate
 - Each subagent gets fresh context automatically
-- **You MUST specify `subagent_type`** when calling the Agent tool. `"designing-interfaces"` for the designer, `"critiquing-designs"` for the critic. Without this, the agent won't load its instructions and will skip browser testing.
-- **Keep delegation prompts minimal** — the agent files contain all instructions. Detailed prompts override agent instructions and cause agents to skip critical steps like browser testing.
+- **`subagent_type` is MANDATORY** — `"designing-interfaces"` for designer, `"critiquing-designs"` for critic. Omitting it causes agents to skip browser testing.
+- Keep delegation prompts minimal — the agent files contain all instructions
 - Pass feedback file paths to the designer on retries
-- If the critic's feedback mentions it could not use browser tools or contains zero screenshots, treat the evaluation as invalid and retry
+- If the critic's feedback references HTML line numbers or mentions it could not use browser tools, treat the evaluation as invalid and retry
