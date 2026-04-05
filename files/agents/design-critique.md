@@ -155,6 +155,11 @@ Write to `pipeline/feedback/design-review-[N]-cycle-[C].md`:
 
 ---
 
+## File Output
+
+- **Feedback** goes to `pipeline/feedback/design-review-[N]-cycle-[C].md`
+- **Screenshots** — if you save any screenshots to disk, they MUST go to `pipeline/feedback/`, NOT the project root. Use filenames like `pipeline/feedback/design-[N]-[description].png`. Never write `.png` files to the project root.
+
 ## Decision Logic
 
 - **ALL prototypes reviewed AND score = 10/10** → output `<promise>PERFECT</promise>` — stops the loop

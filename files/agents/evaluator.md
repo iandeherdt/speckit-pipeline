@@ -182,6 +182,11 @@ Signal rules:
 
 ---
 
+## File Output
+
+- **Feedback** goes to `pipeline/feedback/sprint-[N]-cycle-[C].md`
+- **Screenshots** — if you save any screenshots to disk, they MUST go to `pipeline/feedback/`, NOT the project root. Use filenames like `pipeline/feedback/sprint-[N]-[description].png`. Never write `.png` files to the project root.
+
 ## Guidelines
 
 - **Be specific** — "The form doesn't work" is useless; "The submit handler on `/login` doesn't validate email format — submitting `foo` triggers a 500" is useful
