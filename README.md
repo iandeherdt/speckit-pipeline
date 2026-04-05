@@ -39,7 +39,10 @@ This will:
 - Merge launch configs into `.claude/launch.json` (dev server on port 3000, design server on port 4444)
 - Add required permissions to `.claude/settings.json`
 - Append pipeline documentation to `CLAUDE.md`
+- Install an opinionated constitution to `.specify/memory/constitution.md`
 - Create `pipeline/feedback/` for evaluator reports
+
+> **Note on the constitution:** The installer ships an opinionated constitution with 6 principles (Test-First, Security-First, Code Quality, Component Separation, Library-First, Design Fidelity). If your project has the default blank spec-kit template (`[PROJECT_NAME] Constitution`), it will be **replaced automatically**. If you've already written your own constitution, it will be preserved — use `--force` to overwrite. Review `.specify/memory/constitution.md` after install and adjust the principles to fit your project.
 
 Options:
 - `--dry-run` — Preview what would be installed without writing files
@@ -69,7 +72,7 @@ Starts the designer/critic loop. Prototypes are written to `designs/` and served
 /build
 ```
 
-Starts the developer/evaluator loop. Implements sprints from `.speckit/tasks/` in order, verifying each against acceptance criteria in a real browser on port 3000.
+Starts the developer/evaluator loop. Implements sprints from `specs/<latest-branch>/tasks.md` in order, verifying each against acceptance criteria in a real browser on port 3000.
 
 ## How it works
 
