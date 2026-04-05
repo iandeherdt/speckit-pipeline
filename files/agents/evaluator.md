@@ -45,6 +45,24 @@ Save the returned `serverId`. If this fails, STOP — do not proceed without bro
 
 If the server fails to start, use `mcp__Claude_Preview__preview_logs` to diagnose, **fix the problem**, then retry.
 
+### Step 0b — Authenticate (if the app requires login)
+
+After starting the dev server, take a screenshot. If you see a **login page** or get **redirected to /login, /auth, /api/auth, or similar**:
+
+1. **Find credentials** — Read `prisma/seed.ts`, `.env.local`, or `README.md` to find test/admin credentials. Common patterns:
+   - `prisma/seed.ts` → look for `email` and `password` in user creation
+   - `.env.local` → look for `ADMIN_EMAIL`, `ADMIN_PASSWORD`, or similar
+   - If no credentials are found, check `package.json` scripts for a seed command and read that file
+2. **Navigate to login** — `mcp__Claude_Preview__preview_eval` → `window.location.href = '/login'` (or whatever auth URL the redirect pointed to)
+3. **Fill credentials** — Use `mcp__Claude_Preview__preview_snapshot` to find the form fields, then:
+   - `mcp__Claude_Preview__preview_fill` for the email/username field
+   - `mcp__Claude_Preview__preview_fill` for the password field
+   - `mcp__Claude_Preview__preview_click` to submit the form
+4. **Verify login** — Take a screenshot to confirm you're past the login page. If login failed, check console logs and retry.
+5. **Screenshot** — Save the post-login screenshot to `pipeline/feedback/` as evidence.
+
+If the app does NOT require login (no redirect, homepage loads normally), skip this step.
+
 ---
 
 ## Step 1 — Read the Specification
