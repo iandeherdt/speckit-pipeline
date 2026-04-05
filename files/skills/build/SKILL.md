@@ -7,7 +7,7 @@ Model assignment per subagent. Change these to control cost/quality tradeoffs:
 | Subagent    | Model    | Rationale |
 |-------------|----------|-----------|
 | developer   | $DEVELOPER_MODEL (default: sonnet) | Heavy code generation — sonnet balances speed and quality |
-| evaluator   | $EVALUATOR_MODEL (default: opus)   | Critical judgment — opus is more thorough at finding issues |
+| evaluator   | $EVALUATOR_MODEL (default: sonnet)   | Browser verification — sonnet balances thoroughness and token cost |
 
 Override by setting variables before invoking `/build`, or edit the defaults above.
 
@@ -33,7 +33,7 @@ Call the Agent tool with `subagent_type: "developing-features"` and `model: "son
 
 ### Step 2 — Evaluator
 
-Call the Agent tool with `subagent_type: "evaluating-sprints"` and `model: "opus"`. The prompt should only contain the sprint context — the agent file handles everything else:
+Call the Agent tool with `subagent_type: "evaluating-sprints"` and `model: "sonnet"`. The prompt should only contain the sprint context — the agent file handles everything else:
 
 ```
 Evaluate Sprint [N], Cycle [C].
