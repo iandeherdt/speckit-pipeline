@@ -140,7 +140,7 @@ NOW you may read source code. Check for the current sprint's stories:
 
 1. **Component separation**: Components in their own files. A `page.tsx` should be a thin composition shell, not a monolith. Everything in one file = **High** severity.
 2. **Code quality**: No file over 500 lines. Functions are focused. Linting passes.
-3. **Test coverage**: Tests exist for acceptance criteria. They pass.
+3. **Test coverage (NON-NEGOTIABLE)**: Tests MUST exist for acceptance criteria. No tests = **High** severity, sprint cannot pass. This is Constitution Principle I — it applies even if tasks.md says "tests not requested" or "test tasks omitted". Run the tests and verify they pass.
 
 ---
 
