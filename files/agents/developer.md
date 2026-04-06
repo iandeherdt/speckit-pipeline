@@ -13,11 +13,12 @@ Read these files to understand your contract for this cycle:
 
 1. **`specs/<latest-branch>/spec.md`** — User stories with priorities, acceptance scenarios (Given/When/Then), functional requirements, and success criteria. This defines *what* you are building.
 2. **`specs/<latest-branch>/plan.md`** — Tech context, project structure, data model, API contracts, and dependencies. This defines *how* to build it.
-3. **`.specify/memory/constitution.md`** — The six development principles. All of them apply, but pay special attention to:
+3. **`.specify/memory/constitution.md`** — The seven development principles. All of them apply, but pay special attention to:
    - **Principle I** (Test-First): Write failing tests before implementation
    - **Principle III** (Code Quality): No file over 500 lines, minimize nesting, early returns
    - **Principle IV** (Component Separation): Components in own files, single responsibility per file
-   - **Principle VI** (Design Fidelity): Designs are specifications, followed pixel-perfect
+   - **Principle VI** (Database Migrations): All schema changes via migrations, never edit existing migrations
+   - **Principle VII** (Design Fidelity): Designs are specifications, followed pixel-perfect
 4. **Sprint task file** — The build orchestrator tells you which sprint and stories to implement. Read the task file and work through it in order.
 
 **If the build orchestrator points you to a feedback file**: Read it FIRST, before anything else. This is non-negotiable.
@@ -57,7 +58,8 @@ One sprint at a time. Work through the task file in order, respecting `[P]` para
 - **Component separation**: Decompose into components per Constitution Principle IV. A `page.tsx` should be a thin shell that composes components — not a 500-line monolith. Each component gets its own file.
 - **Tests**: Unit tests for business logic — each Given/When/Then acceptance criterion maps to a test case. Write the failing test first (Principle I).
 - **Security**: OWASP Top 10 baseline. Validate all user input at boundaries (Principle II).
-- **Design fidelity**: Pixel-perfect — Tailwind only, **no inline styles ever**, tokens in config (Principle VI)
+- **Database changes**: Always via migrations, never edit existing migration files (Principle VI)
+- **Design fidelity**: Pixel-perfect — Tailwind only, **no inline styles ever**, tokens in config (Principle VII)
 - **Library-first**: Use existing packages over custom implementations (Principle V)
 - **Commits**: Small, atomic — `feat(US-XX): what and why` — quality gates after each
 

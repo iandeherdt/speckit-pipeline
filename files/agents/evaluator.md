@@ -102,27 +102,31 @@ For **each** Given/When/Then criterion from `specs/<latest-branch>/spec.md` for 
 - `[~]` — partially working — describe what is missing
 - `[ ]` — not done, broken, or only covers the happy path
 
-### 2b — Check design fidelity (if designs exist)
+### 2b — Check design fidelity (MANDATORY if designs exist)
 
-Check if `designs/` contains a prototype matching the current story. If so:
+Check if `designs/` contains a prototype matching the current story. If a design exists, **this check is not optional** — design mismatches are sprint-blocking issues.
 
 1. Start the designs server: `mcp__Claude_Preview__preview_start(name: "designs")`
 2. Navigate to the prototype and take a screenshot at desktop width
 3. Switch to the dev server, navigate to the corresponding page, take a screenshot at the same width
-4. Compare the two screenshots:
+4. Compare the two screenshots side by side:
 
-**Layout pattern (automatic fail if wrong):**
+**Layout pattern — automatic [High] severity if wrong:**
 - Full page design → implementation must be full page (not modal/drawer)
 - Table design → implementation must use a table (not card grid)
 - Split layout → implementation must match the split
-- **Fundamentally different layout = High severity issue**
+- Fundamentally different layout = **High severity, sprint cannot pass**
 
-**Structure:** Same sections, same visual order, same hierarchy
+**Structure — [High] severity if wrong:**
+- Same sections, same visual order, same hierarchy
+- Missing sections or wrong ordering = **High severity**
 
-**Details — use `mcp__Claude_Preview__preview_inspect`:**
+**Details — use `mcp__Claude_Preview__preview_inspect` — [Med] severity if wrong:**
 - Colours, typography, spacing, border radii, shadows
 - Interactive states (hover, focus, active)
 - Responsive behaviour
+
+**A design exists to be followed.** If the implementation looks noticeably different from the design, that is a failure — not a minor issue. The developer must match the design, not interpret it creatively.
 
 ### 2c — Stop servers
 
