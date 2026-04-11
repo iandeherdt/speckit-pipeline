@@ -16,8 +16,8 @@ Both loops produce structured feedback in `pipeline/feedback/` and log progress 
 
 | Agent | Role |
 |-------|------|
-| **designer** | Creates production-grade HTML/CSS prototypes with a distinctive aesthetic direction |
-| **design-critique** | Evaluates prototypes in-browser across breakpoints, scores on design quality, originality, craft, and functionality |
+| **designer** | Creates production-grade HTML/CSS prototypes, reusing existing components and patterns for consistent UX across similar pages |
+| **design-critique** | Evaluates prototypes in-browser across breakpoints, scores on design quality, originality, craft, functionality, and cross-page consistency |
 | **developer** | Implements user stories with test-first development, enforcing code quality and design fidelity |
 | **evaluator** | Verifies implementations end-to-end in a real browser, writes actionable feedback with severity levels |
 

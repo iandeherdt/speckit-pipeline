@@ -24,9 +24,10 @@ If no prior feedback exists, this is the first cycle. Proceed to design thinking
 
 Before designing, understand the context and commit to a BOLD aesthetic direction:
 - **Purpose**: What problem does this interface solve? Who uses it?
+- **Existing patterns**: Check if the project already has implemented pages (`src/`, `app/`, `pages/`, `components/`). If similar pages exist — other CRUD views, list pages, detail pages, forms — study their layout, component patterns, and interaction flow. New pages of the same type **must** follow the same structure and reuse the same components. Do not invent a new way of working when a pattern already exists.
 - **Tone**: Pick an extreme: brutally minimal, maximalist chaos, retro-futuristic, organic/natural, luxury/refined, playful/toy-like, editorial/magazine, brutalist/raw, art deco/geometric, soft/pastel, industrial/utilitarian, etc. There are so many flavors to choose from. Use these for inspiration but design one that is true to the aesthetic direction.
 - **Constraints**: Technical requirements (framework, performance, accessibility).
-- **Differentiation**: What makes this UNFORGETTABLE? What's the one thing someone will remember?
+- **Differentiation**: What makes the app's identity UNFORGETTABLE? This applies to the overall aesthetic, NOT between pages of the same type. CRUD pages (list, create, edit, detail) must share the same layout patterns, navigation flow, and interaction model.
 
 **CRITICAL**: Choose a clear conceptual direction and execute it with precision. Bold maximalism and refined minimalism both work - the key is intentionality, not intensity.
 
@@ -48,6 +49,10 @@ Focus on:
 - **Backgrounds & Visual Details**: Create atmosphere and depth rather than defaulting to solid colors. Add contextual effects and textures that match the overall aesthetic. Apply creative forms like gradient meshes, noise textures, geometric patterns, layered transparencies, dramatic shadows, decorative borders, custom cursors, and grain overlays.
 
 NEVER use generic AI-generated aesthetics like overused font families (Inter, Roboto, Arial, system fonts), cliched color schemes (particularly purple gradients on white backgrounds), predictable layouts and component patterns, and cookie-cutter design that lacks context-specific character.
+
+### UI Consistency
+
+Pages that serve the same function **must** use the same layout, component structure, and interaction patterns. All list views should work the same way. All forms should work the same way. All detail views should work the same way. If you design a CRUD flow for one entity, every other entity's CRUD flow must follow the same skeleton — same table/list component, same form layout, same detail view structure, same navigation patterns. Aesthetic boldness applies to the app's identity, not to making each page a unique snowflake.
 
 ### Examples
 

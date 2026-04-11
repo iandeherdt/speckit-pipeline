@@ -87,6 +87,8 @@ List the files in `designs/` to know which prototypes exist.
 
 **Functionality** — Can a user understand the interface in 3 seconds? Find the primary action? Complete the main task flow? Distinguish interactive from decorative elements?
 
+**Consistency** — Do pages of the same type (list, detail, form, dashboard) follow the same layout, component patterns, and interaction flow? Red flags: a list page using cards while another uses a table for the same kind of data, different form layouts across entities, navigation that works differently between pages, CRUD flows that follow different logic. Passing: all pages of the same type share the same skeleton, interactions are predictable across the app, components are reused rather than reinvented.
+
 ### Stop the server
 
 `mcp__Claude_Preview__preview_stop` when all prototypes have been evaluated.
@@ -119,7 +121,7 @@ Score each prototype against the four rubric dimensions (0–5 each):
 - **1.25**: Attempted but significant problems
 - **0**: Not done or fundamentally broken
 
-Compute a **total score** (sum / max) normalised to `X.X / 10`.
+Compute a **total score** (sum of all 5 dimensions / 25) normalised to `X.X / 10`.
 
 Write to `pipeline/feedback/design-review-[N]-cycle-[C].md`:
 
@@ -137,6 +139,7 @@ Write to `pipeline/feedback/design-review-[N]-cycle-[C].md`:
 | Originality | X | 5 | One sentence |
 | Craft | X | 5 | One sentence |
 | Functionality | X | 5 | One sentence |
+| Consistency | X | 5 | One sentence |
 | **Total** | **X.X** | **10** | |
 
 ### Spec Coverage
