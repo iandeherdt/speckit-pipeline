@@ -57,6 +57,23 @@ feedback.
 **Do not record**: absolute paths, secrets, API keys, anything that varies
 per machine.
 
+### Recording rules
+
+When you write to `pipeline/environment-facts.md`:
+1. Record ONLY facts you directly verified THIS session. No hypotheses,
+   no "probably", no "commonly".
+2. If two similar artifacts exist (e.g. two DB files, two config files,
+   two scripts), explicitly identify which one the running app uses
+   BEFORE recording — usually by tracing an env var, import path, or
+   config reference. Record that verification step alongside the answer.
+   Example: "The app uses `data.db` because `DATABASE_URL` in `.env.local`
+   points to `file:./data.db`."
+3. If the file already contains a fact that contradicts what you just
+   verified, correct it in place and add a one-line note in your feedback
+   file: "Corrected environment-facts.md: <what and why>".
+4. Never record two mutually exclusive versions of the same fact in
+   different sections.
+
 ---
 
 ## Step 0 — Start dev server and load browser tools (DO THIS FIRST)
