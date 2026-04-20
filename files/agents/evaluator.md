@@ -24,9 +24,47 @@ If the browser tools fail to load or the server won't start, **STOP and report t
 
 ---
 
+## Environment Facts (discover once, cache)
+
+To avoid re-discovering project layout on every cycle, maintain a facts
+file at `pipeline/environment-facts.md` (relative to the project root).
+
+**Cycle 1 (no facts file yet):**
+Discover the following as you go and append each to
+`pipeline/environment-facts.md` the first time you learn it:
+- Dev server: trust the port returned by `mcp__Claude_Preview__preview_start`
+  — do NOT assume 3000 or any specific port.
+- Typecheck command (e.g. `npx tsc --noEmit` or a project-specific script).
+- Test command for targeted runs (e.g. `npx vitest run <path>`,
+  `npx jest <path>`) — avoid whole-suite commands.
+- Auth credentials location if Step 0b applies (file path + variable names
+  only — never copy secrets into the facts file).
+- Any other stable project fact you needed discovery commands to find
+  (e.g. "the `.db` file at `<path>` is a stale artifact — use `<path>`
+  instead").
+
+**Cycle 2+ (facts file exists):**
+Read `pipeline/environment-facts.md` first. Do NOT re-run discovery
+commands (grepping package.json, listing directories, reading configs) to
+reconfirm anything already recorded there. If a fact turns out to be
+wrong, correct it in the facts file and note the correction in your
+feedback.
+
+**Do not record**: absolute paths, secrets, API keys, anything that varies
+per machine.
+
+---
+
 ## Step 0 — Load browser tools and start server (DO THIS FIRST)
 
-The Claude Preview MCP tools are **deferred**. Run these ToolSearch calls **immediately** — before reading any other files:
+The Claude Preview MCP tools are **deferred**. Run this ToolSearch call **immediately** — before reading any other files:
+
+```
+ToolSearch("Claude Preview MCP browser preview tools", max_results: 15)
+```
+
+If that single call does not load all required `preview_*` tools, fall
+back to the four targeted queries:
 
 ```
 ToolSearch("select:mcp__Claude_Preview__preview_start,mcp__Claude_Preview__preview_stop,mcp__Claude_Preview__preview_screenshot", max_results: 3)
@@ -67,18 +105,30 @@ If the app does NOT require login (no redirect, homepage loads normally), skip t
 
 ## Step 1 — Read the Specification
 
-Resolve the active spec branch: list the `specs/` directory and pick the highest-numbered (latest) subfolder — that is `<latest-branch>` used in all paths below.
+The build orchestrator passes the spec branch and sprint/cycle in the prompt.
+Use exactly those values. Do NOT list the `specs/` directory or re-resolve
+the latest branch — the orchestrator already did this.
 
-Read these files to build your verification checklist:
+**Cycle 1 (first evaluation of this sprint):**
+1. Read `<spec-branch>/spec.md` — extract acceptance criteria ONLY for the
+   user stories listed in the prompt.
+2. Read `<spec-branch>/tasks.md` — narrowed to the task IDs in the prompt.
+3. Build your verification checklist from these.
 
-1. **`specs/<latest-branch>/spec.md`** — User stories with acceptance scenarios (Given/When/Then). These are your primary verification criteria.
-2. **Sprint task file** — The build orchestrator tells you which sprint and stories to verify. This defines the scope of your evaluation.
+**Cycle 2+ (retry after a failed cycle):**
+1. Read `pipeline/feedback/sprint-[N]-cycle-[C-1].md`.
+2. Build a NARROWED checklist containing only:
+   - Acceptance criteria that were `[ ]` or `[~]` in the prior cycle
+   - Items from the "Unresolved Issues" section
+   - Any [High] severity issues the developer was supposed to fix
+3. Do NOT re-verify criteria that were `[x]` in the prior cycle. Trust the
+   prior pass — your job on retry is to verify the delta, not re-run the
+   whole sprint.
+4. You still read `<spec-branch>/spec.md` ONLY if you need the Given/When/Then
+   text for a criterion being re-verified.
 
-Build a checklist of every acceptance criterion that must be verified for the stories in this sprint.
-
-If `specs/<latest-branch>/spec.md` does not exist, stop and report the error.
-
-If a prior feedback file exists in `pipeline/feedback/` from an earlier cycle, check whether the developer addressed the previously flagged issues. Unresolved items carry the same weight as new failures.
+If `<spec-branch>/spec.md` does not exist at the path passed by the orchestrator,
+stop and report the error.
 
 ---
 
@@ -88,23 +138,47 @@ If a prior feedback file exists in `pipeline/feedback/` from an earlier cycle, c
 
 ### 2a — Verify each acceptance criterion
 
-For **each** Given/When/Then criterion from `specs/<latest-branch>/spec.md` for the stories in this sprint:
+**Group criteria by page.** Navigate to each page ONCE, take one snapshot,
+then run all criteria for that page before moving to the next page. Do not
+navigate → snapshot → navigate → snapshot for criteria that share a page.
+
+For **each** Given/When/Then criterion from `<spec-branch>/spec.md` for the stories in this sprint:
 
 1. **Navigate** — `mcp__Claude_Preview__preview_eval` to go to the relevant page (e.g. `window.location.href = '/path'`)
 2. **Snapshot** — `mcp__Claude_Preview__preview_snapshot` to get the accessibility tree and element structure
 3. **Interact** — Reproduce the "When" action using `mcp__Claude_Preview__preview_click`, `mcp__Claude_Preview__preview_fill`, or `mcp__Claude_Preview__preview_eval` for keyboard events
 4. **Snapshot again** — `mcp__Claude_Preview__preview_snapshot` to capture the result state
 5. **Assert** — Verify the "Then" expectation. Check `mcp__Claude_Preview__preview_console_logs` for JS errors and `mcp__Claude_Preview__preview_network` for 4xx/5xx
-6. **Screenshot** — `mcp__Claude_Preview__preview_screenshot` after every criterion (pass or fail) as evidence
+6. **Screenshot** — Required for:
+   - Every FAILED criterion (evidence for the feedback file)
+   - Every visual/layout criterion regardless of pass/fail (modals, spacing,
+     positioning, responsive behavior)
+   - Every design-fidelity check in Step 2b
+
+   NOT required for passing criteria whose verification is purely textual
+   (e.g. "the page renders this string", "the form submits without error").
+   For those, the accessibility-tree snapshot is sufficient evidence — no
+   screenshot needed.
 
 **Mark results:**
 - `[x]` — verified working end-to-end in the browser
 - `[~]` — partially working — describe what is missing
 - `[ ]` — not done, broken, or only covers the happy path
 
-### 2b — Check design fidelity (MANDATORY if designs exist)
+### 2b — Check design fidelity (conditional)
 
-Check if `designs/` contains a prototype matching the current story. If a design exists, **this check is not optional** — design mismatches are sprint-blocking issues.
+Run this step ONLY if ALL of the following are true:
+- A `designs/` directory exists in the repo root, AND
+- It contains a prototype file matching a page touched by this sprint's stories, AND
+- The sprint stories involve UI work (skip for API-only, data-model-only,
+  or infra-only sprints)
+
+If any of those are false, skip this step silently. Do NOT mention "no designs
+directory" or "no matching prototype" in the feedback file — just skip.
+
+When the check IS relevant, it is mandatory and design mismatches are
+sprint-blocking [High] severity. The rest of this section (layout pattern,
+structure, details) is unchanged.
 
 1. Start the designs server: `mcp__Claude_Preview__preview_start(name: "designs")`
 2. Navigate to the prototype and take a screenshot at desktop width
@@ -209,13 +283,21 @@ Signal rules:
 
 ## Step 6 — Update tasks.md
 
-If the sprint **passes** (you output `<promise>COMPLETE</promise>` or `<promise>PERFECT</promise>`):
+If the sprint **passes** (you output `<promise>COMPLETE</promise>` or
+`<promise>PERFECT</promise>`):
 
-1. Read `specs/<latest-branch>/tasks.md`
-2. For each task ID in this sprint that was verified as working, change `- [ ]` to `- [x]`
-3. Write the updated file back
+For each task ID verified as working, flip its checkbox in place using sed.
+Do NOT read the whole `tasks.md` into context just to rewrite it.
 
-If the sprint **fails**, do NOT modify tasks.md. Only mark tasks when the sprint passes.
+```bash
+sed -i 's/^- \[ \] T001 /- [x] T001 /' <spec-branch>/tasks.md
+sed -i 's/^- \[ \] T002 /- [x] T002 /' <spec-branch>/tasks.md
+# ... one sed call per task ID
+```
+
+(On macOS, use `sed -i ''` instead of `sed -i`.)
+
+If the sprint **fails**, do NOT modify tasks.md.
 
 ---
 
