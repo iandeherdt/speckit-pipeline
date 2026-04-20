@@ -21,8 +21,9 @@ Discover the following as you go and append each to
   - Targeted: e.g. `npx vitest run <path>`, `npx jest <path>` — use by default
   - Full suite: e.g. `npx vitest run` — only before handoff to evaluator
 - Lint command (verify the script exists in package.json once per session).
-- Dev server command (commonly `npm run dev`). The evaluator uses Claude
-  Preview MCP, so you do not need to reserve a port against it.
+- Dev server command (commonly `npm run dev`). The evaluator drives the
+  app through Playwright MCP pointed at a normal localhost URL, so you do
+  not need to reserve a port against it.
 - Migration command if the project uses a migration tool (e.g.
   `npx prisma migrate dev --name <descriptive>`). Never edit existing
   migration files (Constitution Principle VI).
@@ -143,7 +144,7 @@ the final handoff.
 
 2. **Tests (targeted)**: Run the test command against the paths for your
    changed files. All tests for your changes must pass. Do NOT run the full
-   suite here — save it for step 4.
+   suite here — save that for item 4 below.
 
 3. **Lint (targeted)**: If the lint script supports path arguments, lint
    just your changed files; otherwise run it across the repo. Fix lint
@@ -153,10 +154,14 @@ the final handoff.
    suite. If a test outside your scope fails and you did not touch related
    code, note it for the evaluator. Do NOT chase unrelated flakes.
 
-5. **Dev server smoke check**: Start the dev server in the background, wait
-   a few seconds for it to be ready, then curl the root URL and check for a
-   200. Stop the server afterwards. Do NOT tail the full dev log into
-   context — if the smoke fails, read just the last ~30 lines of the log.
+5. **Dev server smoke check**: Start the dev server in the background,
+   wait a few seconds for it to be ready, then curl the root URL and
+   check for a 200. **Stop the server before handing off to the
+   evaluator** — use `pkill -f "next dev"` (or the project's equivalent
+   command recorded in `pipeline/environment-facts.md`). The evaluator
+   starts its own instance and will fail with a port conflict if one is
+   already running. If the smoke check itself fails, read just the last
+   ~30 lines of the log, fix, and retry once.
 
 The build orchestrator handles logging and cycle management — do not write
 to any tracking files.

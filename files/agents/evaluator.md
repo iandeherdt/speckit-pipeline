@@ -1,6 +1,6 @@
 ---
 name: evaluating-sprints
-description: Verifies completed sprint tasks in a real browser via Claude Preview MCP, scores against a rubric, and writes actionable feedback. Use this skill after the developer finishes a sprint cycle to validate acceptance criteria end-to-end.
+description: Verifies completed sprint tasks in a real browser via Playwright MCP, scores against a rubric, and writes actionable feedback. Use this skill after the developer finishes a sprint cycle to validate acceptance criteria end-to-end.
 ---
 
 # Evaluator Agent Instructions
@@ -16,9 +16,13 @@ You are a **skeptical reviewer**, not a cheerleader. Generators consistently ove
 ## ⚠️ HARD RULES — VIOLATION = INVALID EVALUATION
 
 1. **NEVER use WebFetch** to load pages from localhost. WebFetch returns raw HTML — that is not verification.
-2. **NEVER read launch.json**. The preview tool handles server config automatically.
+2. **NEVER read launch.json**. The dev server is started via bash (Step 0); no launch config is used.
 3. **Do NOT read source code until AFTER browser testing** (Step 3). Source code is only for checking file structure, not for verifying acceptance criteria.
-4. You MUST take screenshots of every acceptance criterion. An evaluation without screenshots is invalid.
+4. You MUST take screenshots of every FAILED criterion, every visual/layout
+   criterion, and every design-fidelity check. An evaluation with zero
+   screenshots is invalid — if everything genuinely passed and nothing was
+   visual, at least one smoke screenshot of the successful end state is
+   still required as evidence.
 
 If the browser tools fail to load or the server won't start, **STOP and report the failure**. Do NOT fall back to code review.
 
@@ -32,8 +36,8 @@ file at `pipeline/environment-facts.md` (relative to the project root).
 **Cycle 1 (no facts file yet):**
 Discover the following as you go and append each to
 `pipeline/environment-facts.md` the first time you learn it:
-- Dev server: trust the port returned by `mcp__Claude_Preview__preview_start`
-  — do NOT assume 3000 or any specific port.
+- Dev server port (commonly 3000) — record it here the first time you
+  confirm it with `curl`. Do not hard-code 3000 elsewhere in your cycle.
 - Typecheck command (e.g. `npx tsc --noEmit` or a project-specific script).
 - Test command for targeted runs (e.g. `npx vitest run <path>`,
   `npx jest <path>`) — avoid whole-suite commands.
@@ -55,48 +59,87 @@ per machine.
 
 ---
 
-## Step 0 — Load browser tools and start server (DO THIS FIRST)
+## Step 0 — Start dev server and load browser tools (DO THIS FIRST)
 
-The Claude Preview MCP tools are **deferred**. Run this ToolSearch call **immediately** — before reading any other files:
+Playwright MCP does NOT manage dev servers. You must start the server via
+bash, then point Playwright at it.
 
-```
-ToolSearch("Claude Preview MCP browser preview tools", max_results: 15)
-```
+**0.1 — Start the dev server (bash):**
 
-If that single call does not load all required `preview_*` tools, fall
-back to the four targeted queries:
-
-```
-ToolSearch("select:mcp__Claude_Preview__preview_start,mcp__Claude_Preview__preview_stop,mcp__Claude_Preview__preview_screenshot", max_results: 3)
-ToolSearch("select:mcp__Claude_Preview__preview_snapshot,mcp__Claude_Preview__preview_eval,mcp__Claude_Preview__preview_click", max_results: 3)
-ToolSearch("select:mcp__Claude_Preview__preview_fill,mcp__Claude_Preview__preview_inspect,mcp__Claude_Preview__preview_resize", max_results: 3)
-ToolSearch("select:mcp__Claude_Preview__preview_console_logs,mcp__Claude_Preview__preview_network,mcp__Claude_Preview__preview_logs", max_results: 3)
+```bash
+npm run dev > /tmp/devserver.log 2>&1 &
 ```
 
-Then immediately start the dev server:
+Wait ~8 seconds, then verify:
+
+```bash
+curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/
+```
+
+Expected: `200`. If the port differs on this project, the correct port
+should be in `pipeline/environment-facts.md` (or record it there on first
+discovery). If the smoke check fails:
+
+```bash
+tail -30 /tmp/devserver.log
+```
+
+Diagnose, fix, and retry ONCE. If it still fails, STOP and report — do not
+enter a restart/wipe/pkill loop. Do not fall back to code review.
+
+**0.2 — Load Playwright tools:**
+
+The Playwright MCP tools are deferred. Load them with one call:
 
 ```
-mcp__Claude_Preview__preview_start(name: "dev")
+ToolSearch("playwright browser navigate snapshot screenshot click type evaluate", max_results: 20)
 ```
 
-Save the returned `serverId`. If this fails, STOP — do not proceed without browser tools.
+If that does not load enough tools, fall back to these targeted queries:
 
-If the server fails to start, use `mcp__Claude_Preview__preview_logs` to diagnose, **fix the problem**, then retry.
+```
+ToolSearch("select:mcp__playwright__browser_navigate,mcp__playwright__browser_snapshot,mcp__playwright__browser_take_screenshot", max_results: 3)
+ToolSearch("select:mcp__playwright__browser_click,mcp__playwright__browser_type,mcp__playwright__browser_fill_form", max_results: 3)
+ToolSearch("select:mcp__playwright__browser_evaluate,mcp__playwright__browser_console_messages,mcp__playwright__browser_network_requests", max_results: 3)
+ToolSearch("select:mcp__playwright__browser_press_key,mcp__playwright__browser_resize,mcp__playwright__browser_close", max_results: 3)
+```
+
+If tools still fail to load, STOP and report — do not proceed without
+browser tools.
+
+**0.3 — Navigate to the app:**
+
+```
+mcp__playwright__browser_navigate(url: "http://localhost:3000")
+```
+
+Take a screenshot to confirm the app rendered. If it did, proceed.
+
+**0.4 — Stop protocol:**
+
+At the end of the evaluation (Step 2c), close the browser with
+`mcp__playwright__browser_close`. Stop the dev server with
+`pkill -f "next dev"` (or the equivalent for this project — record the
+correct command in environment-facts.md if you discover it).
 
 ### Step 0b — Authenticate (if the app requires login)
 
 After starting the dev server, take a screenshot. If you see a **login page** or get **redirected to /login, /auth, /api/auth, or similar**:
 
-1. **Find credentials** — Read `prisma/seed.ts`, `.env.local`, or `README.md` to find test/admin credentials. Common patterns:
-   - `prisma/seed.ts` → look for `email` and `password` in user creation
-   - `.env.local` → look for `ADMIN_EMAIL`, `ADMIN_PASSWORD`, or similar
-   - If no credentials are found, check `package.json` scripts for a seed command and read that file
-2. **Navigate to login** — `mcp__Claude_Preview__preview_eval` → `window.location.href = '/login'` (or whatever auth URL the redirect pointed to)
-3. **Fill credentials** — Use `mcp__Claude_Preview__preview_snapshot` to find the form fields, then:
-   - `mcp__Claude_Preview__preview_fill` for the email/username field
-   - `mcp__Claude_Preview__preview_fill` for the password field
-   - `mcp__Claude_Preview__preview_click` to submit the form
-4. **Verify login** — Take a screenshot to confirm you're past the login page. If login failed, check console logs and retry.
+1. **Find credentials** — If credentials are already recorded in
+   `pipeline/environment-facts.md`, use those. Otherwise, discover them
+   once from `prisma/seed.ts`, `.env.local`, or `README.md` and record
+   the LOCATION (file path + variable names, not the secret values) in
+   `pipeline/environment-facts.md` for future cycles.
+2. **Navigate to login** — `mcp__playwright__browser_navigate(url: '/login')` (or whatever auth URL the redirect pointed to)
+3. **Fill credentials** — Use `mcp__playwright__browser_snapshot` to find the form fields, then:
+   - `mcp__playwright__browser_type` for the email/username field
+   - `mcp__playwright__browser_type` for the password field
+   - `mcp__playwright__browser_click` to submit the form
+   - (For multi-field forms you can use `mcp__playwright__browser_fill_form` in one call instead.)
+4. **Verify login** — Take a screenshot to confirm you're past the login
+   page. If login failed, check
+   `mcp__playwright__browser_console_messages` and retry once.
 5. **Screenshot** — Save the post-login screenshot to `pipeline/feedback/` as evidence.
 
 If the app does NOT require login (no redirect, homepage loads normally), skip this step.
@@ -144,11 +187,11 @@ navigate → snapshot → navigate → snapshot for criteria that share a page.
 
 For **each** Given/When/Then criterion from `<spec-branch>/spec.md` for the stories in this sprint:
 
-1. **Navigate** — `mcp__Claude_Preview__preview_eval` to go to the relevant page (e.g. `window.location.href = '/path'`)
-2. **Snapshot** — `mcp__Claude_Preview__preview_snapshot` to get the accessibility tree and element structure
-3. **Interact** — Reproduce the "When" action using `mcp__Claude_Preview__preview_click`, `mcp__Claude_Preview__preview_fill`, or `mcp__Claude_Preview__preview_eval` for keyboard events
-4. **Snapshot again** — `mcp__Claude_Preview__preview_snapshot` to capture the result state
-5. **Assert** — Verify the "Then" expectation. Check `mcp__Claude_Preview__preview_console_logs` for JS errors and `mcp__Claude_Preview__preview_network` for 4xx/5xx
+1. **Navigate** — `mcp__playwright__browser_navigate(url: '/path')` to go to the relevant page
+2. **Snapshot** — `mcp__playwright__browser_snapshot` to get the accessibility tree and element structure
+3. **Interact** — Reproduce the "When" action using `mcp__playwright__browser_click`, `mcp__playwright__browser_type` / `mcp__playwright__browser_fill_form`, or `mcp__playwright__browser_press_key` for keyboard events (use `mcp__playwright__browser_evaluate` only when no dedicated tool fits)
+4. **Snapshot again** — `mcp__playwright__browser_snapshot` to capture the result state
+5. **Assert** — Verify the "Then" expectation. Check `mcp__playwright__browser_console_messages` for JS errors and `mcp__playwright__browser_network_requests` for 4xx/5xx
 6. **Screenshot** — Required for:
    - Every FAILED criterion (evidence for the feedback file)
    - Every visual/layout criterion regardless of pass/fail (modals, spacing,
@@ -180,9 +223,9 @@ When the check IS relevant, it is mandatory and design mismatches are
 sprint-blocking [High] severity. The rest of this section (layout pattern,
 structure, details) is unchanged.
 
-1. Start the designs server: `mcp__Claude_Preview__preview_start(name: "designs")`
-2. Navigate to the prototype and take a screenshot at desktop width
-3. Switch to the dev server, navigate to the corresponding page, take a screenshot at the same width
+1. Serve the designs folder on a second port (e.g. `npx serve designs -l 3100 &`), then `mcp__playwright__browser_navigate` to `http://localhost:3100/<prototype>.html`. After the comparison, stop the designs server with `pkill -f 'serve designs'`.
+2. Take a screenshot at desktop width (use `mcp__playwright__browser_resize` to set the viewport, then `mcp__playwright__browser_take_screenshot`)
+3. Navigate to the corresponding page on the dev server and take a screenshot at the same width
 4. Compare the two screenshots side by side:
 
 **Layout pattern — automatic [High] severity if wrong:**
@@ -195,7 +238,7 @@ structure, details) is unchanged.
 - Same sections, same visual order, same hierarchy
 - Missing sections or wrong ordering = **High severity**
 
-**Details — use `mcp__Claude_Preview__preview_inspect` — [Med] severity if wrong:**
+**Details — use `mcp__playwright__browser_evaluate` running `getComputedStyle(document.querySelector('<selector>'))` (or rely on `mcp__playwright__browser_snapshot`) — [Med] severity if wrong:**
 - Colours, typography, spacing, border radii, shadows
 - Interactive states (hover, focus, active)
 - Responsive behaviour
@@ -204,7 +247,9 @@ structure, details) is unchanged.
 
 ### 2c — Stop servers
 
-Use `mcp__Claude_Preview__preview_stop` to stop all servers started during evaluation.
+`mcp__playwright__browser_close` to close the browser. Stop the dev server
+with `pkill -f 'next dev'`. Stop the designs server (if started) with
+`pkill -f 'serve designs'`.
 
 ---
 
