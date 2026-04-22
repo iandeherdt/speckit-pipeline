@@ -87,6 +87,18 @@ bash, then point Playwright at it.
 npm run dev > /tmp/devserver.log 2>&1 &
 ```
 
+**Hard rules for this step:**
+- Always redirect output to a FILE with `> /tmp/devserver.log 2>&1 &`. Never
+  pipe a backgrounded long-running process into another command like
+  `npx next dev 2>&1 | head -30 &` — `head` blocks on the pipe and the
+  whole construct hangs.
+- ONE dev server. ONE port. If the first start succeeds, reuse it for the
+  entire evaluation — do NOT `pkill` and restart on a different port
+  "to be safe".
+- Do NOT scan ports (`curl :3001`, `curl :3002`, …). The port is either
+  the one you started on, or recorded in `pipeline/environment-facts.md`.
+  Nothing else.
+
 Wait ~8 seconds, then verify:
 
 ```bash
@@ -101,8 +113,9 @@ discovery). If the smoke check fails:
 tail -30 /tmp/devserver.log
 ```
 
-Diagnose, fix, and retry ONCE. If it still fails, STOP and report — do not
-enter a restart/wipe/pkill loop. Do not fall back to code review.
+Diagnose, fix, and retry ONCE on the same port. If it still fails, STOP
+and report — do not enter a restart/wipe/pkill/port-swap loop. Do not fall
+back to code review.
 
 **0.2 — Load Playwright tools:**
 
@@ -206,7 +219,15 @@ For **each** Given/When/Then criterion from `<spec-branch>/spec.md` for the stor
 
 1. **Navigate** — `mcp__playwright__browser_navigate(url: '/path')` to go to the relevant page
 2. **Snapshot** — `mcp__playwright__browser_snapshot` to get the accessibility tree and element structure
-3. **Interact** — Reproduce the "When" action using `mcp__playwright__browser_click`, `mcp__playwright__browser_type` / `mcp__playwright__browser_fill_form`, or `mcp__playwright__browser_press_key` for keyboard events (use `mcp__playwright__browser_evaluate` only when no dedicated tool fits)
+3. **Interact** — Reproduce the "When" action using `mcp__playwright__browser_click`, `mcp__playwright__browser_type` / `mcp__playwright__browser_fill_form`, or `mcp__playwright__browser_press_key` for keyboard events (use `mcp__playwright__browser_evaluate` only when no dedicated tool fits).
+
+   **Never return an unresolved Promise from `browser_evaluate`.** Expressions
+   like `document.fonts.ready`, `new Promise(...)`, `fetch(...).then(...)`,
+   or anything that awaits a network/asset event can hang indefinitely if
+   the underlying event never fires (font 404, slow compile, idle network).
+   Return plain synchronous values only. For "is the page ready" checks,
+   use `document.readyState === 'complete'` or `mcp__playwright__browser_wait_for`
+   with a short timeout — not `document.fonts.ready`.
 4. **Snapshot again** — `mcp__playwright__browser_snapshot` to capture the result state
 5. **Assert** — Verify the "Then" expectation. Check `mcp__playwright__browser_console_messages` for JS errors and `mcp__playwright__browser_network_requests` for 4xx/5xx
 6. **Screenshot** — Required for:
