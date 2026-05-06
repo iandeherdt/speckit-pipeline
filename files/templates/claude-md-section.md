@@ -18,6 +18,8 @@ Run `/build` to start the dev/eval loop. The orchestrator reads spec-kit's task 
 - `pipeline/feedback/` — evaluator reports per sprint/cycle
 - `pipeline/build-log.md` — full progress log
 - `pipeline/traces/` — JSONL traces of build/design runs (read with `node .claude/scripts/trace-summarise.mjs pipeline/traces/<file>.jsonl`)
+- `pipeline/environment-facts.md` — cached project facts (test command, dev server, DB path) — written by developer/evaluator on cycle 1, read first on later cycles
+- `pipeline/procedures.md` — cached UI flows (login, logout, cookie consent dismissal) — written by evaluator/critic on first encounter, read first on later cycles
 
 ### Subagents
 - **developer** — implements one sprint, follows plan.md

@@ -57,21 +57,63 @@ Read the sprint tasks from `specs/<latest-branch>/tasks.md` in order.
 
 For each sprint (max cycles per sprint: $MAX_CYCLES, default 5):
 
+### Step 0 — Extract the task block
+
+Before invoking the developer or evaluator, extract the relevant lines
+from `tasks.md` for the in-scope task IDs. Use a single command and
+capture the output for inclusion in subagent prompts:
+
+```bash
+awk '/^- \[[ x]\] T[0-9]+/{p=0} /^- \[[ x]\] (T002|T003|T004)\b/{p=1} p' \
+  specs/<latest-branch>/tasks.md
+```
+
+(Substitute the actual task IDs in scope.) Hold this output as the
+"task block" — pass it inline in both the developer and evaluator
+prompts as a fenced markdown block. This avoids both subagents
+re-reading the full 20–30 KB `tasks.md` file every cycle.
+
 ### Step 1 — Developer
 
-Call the Agent tool with `subagent_type: "developing-features"` and `model: "sonnet"`. Prompt should tell it which sprint, stories, and spec branch, and point it at `pipeline/run-state.md` for resolved run facts. On retries include the feedback file path.
+Call the Agent tool with `subagent_type: "developing-features"` and
+`model: "sonnet"`. The prompt MUST include:
+- The sprint number, cycle number, stories in scope, spec branch
+- A pointer to `pipeline/run-state.md`
+- The task block extracted in Step 0, as a fenced markdown block
+- On retries: the path to the prior cycle's feedback file
+
+### Step 1b — Verify environment facts gate
+
+After the developer subagent returns and **before** invoking the evaluator,
+run:
+
+```bash
+node .claude/scripts/verify-environment-facts.mjs
+```
+
+This catches orphan `next dev` processes the developer's `pkill` may
+have missed, and wrong DB-path recordings in
+`pipeline/environment-facts.md`. **If it exits non-zero, do NOT invoke
+the evaluator** — log the failure and loop back to Step 1 with feedback
+to the developer. The developer should also have run this script in
+their own Step 4, but doing it here is defense in depth.
 
 ### Step 2 — Evaluator
 
-Call the Agent tool with `subagent_type: "evaluating-sprints"` and `model: "sonnet"`. The prompt should only contain the sprint context — the agent file handles everything else:
+Call the Agent tool with `subagent_type: "evaluating-sprints"` and `model: "sonnet"`. The prompt should include the sprint context AND the task block — the agent file handles everything else:
 
 ```
 Evaluate Sprint [N], Cycle [C].
 Stories in scope: [list story IDs and titles].
-Tasks in scope: [list task IDs, e.g. T001, T002, T003].
 Spec branch: specs/<latest-branch>/
 Run state: pipeline/run-state.md
+Procedures (login etc.): pipeline/procedures.md
 Write feedback to: pipeline/feedback/sprint-[N]-cycle-[C].md
+
+Task block (do not re-read tasks.md):
+```
+[paste the task block here]
+```
 ```
 
 Do NOT add ToolSearch commands, browser rules, scoring rubrics, or verification steps to the prompt. The evaluator agent file has all of that.

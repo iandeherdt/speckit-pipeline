@@ -117,6 +117,18 @@ List the files in `designs/` to know which prototypes exist.
 ### For each prototype:
 
 1. **Navigate** — `mcp__playwright__browser_navigate(url: 'http://localhost:3100/<prototype>.html')` to open the prototype.
+1a. **Cookie banner check** — Take a quick snapshot. If a cookie consent
+    banner is visible (look for "Accept All", "Reject", or "Cookie Settings"
+    buttons), check `pipeline/procedures.md` for a Cookie Consent
+    procedure first:
+    ```bash
+    grep -A 20 '^## Cookie' pipeline/procedures.md 2>/dev/null
+    ```
+    If one exists, follow it to dismiss the banner before screenshots.
+    Otherwise, click the most permissive accept button, take a fresh
+    snapshot, and append a `## Cookie consent dismissal` procedure to
+    `pipeline/procedures.md` for next cycle. Banners overlay the design
+    and trip up screenshot fidelity if not handled.
 2. **Desktop view** — `mcp__playwright__browser_resize` to a desktop viewport (e.g. 1440×900), then `mcp__playwright__browser_take_screenshot` + `mcp__playwright__browser_snapshot`.
 3. **Mobile view** — `mcp__playwright__browser_resize` to 375×812, then `mcp__playwright__browser_take_screenshot` + `mcp__playwright__browser_snapshot`.
 4. **Interactions** — `mcp__playwright__browser_click` (or `browser_hover`) on interactive elements, then `mcp__playwright__browser_snapshot` to capture the new state. Add a screenshot **only** if the interaction has a visual finding (hover state wrong colour, focus ring missing, etc.).

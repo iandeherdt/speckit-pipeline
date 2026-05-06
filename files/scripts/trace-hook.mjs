@@ -38,15 +38,29 @@ function truncate(s, max) {
   return s.slice(0, max) + `…[+${s.length - max}b]`;
 }
 
+// Strip Claude Code's autolink rendering: `[foo.sh](http://foo.sh)` → `foo.sh`.
+// The hook payload contains the rendered (autolinked) form, not the literal
+// command bytes that bash received. We match only Claude Code's specific
+// shape: bracket text is the entire host of the URL (no path segments).
+// Legitimate markdown links like `[docs](https://example.com/docs)` have
+// distinct bracket text and URL — those stay untouched.
+function unmangleAutolinks(s) {
+  if (typeof s !== 'string') return s;
+  return s.replace(
+    /\[([^\]\n]+)\]\(https?:\/\/\1\)/g,
+    '$1'
+  );
+}
+
 // Keep small payloads, summarise big ones. Never log full file contents.
 function summariseInput(toolName, toolInput) {
   if (!toolInput || typeof toolInput !== 'object') return toolInput ?? null;
   // Special-case Bash: keep the command verbatim, truncate description.
   if (toolName === 'Bash' && typeof toolInput.command === 'string') {
     return {
-      command: truncate(toolInput.command, MAX_INPUT_BYTES),
+      command: truncate(unmangleAutolinks(toolInput.command), MAX_INPUT_BYTES),
       description: typeof toolInput.description === 'string'
-        ? truncate(toolInput.description, 200)
+        ? truncate(unmangleAutolinks(toolInput.description), 200)
         : undefined,
       run_in_background: toolInput.run_in_background || undefined,
     };
@@ -84,6 +98,7 @@ function summariseOutput(toolResponse) {
   } else {
     text = String(toolResponse);
   }
+  text = unmangleAutolinks(text);
   const len = text.length;
   const error = looksLikeError(toolResponse);
   if (len <= TAIL_BYTES * 2 + 32) {

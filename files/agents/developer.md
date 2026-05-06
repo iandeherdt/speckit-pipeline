@@ -82,8 +82,10 @@ re-resolve the latest branch.
 **Cycle 1 (first attempt at this sprint):**
 
 Read in this order:
-1. **Sprint task file** at `<spec-branch>/tasks.md` — narrowed to the task IDs
-   in the prompt. This is your to-do list.
+1. **Task block** — the orchestrator includes the relevant lines from
+   `tasks.md` inline in your prompt as a fenced markdown block. Use it as
+   your to-do list. Do NOT re-read `<spec-branch>/tasks.md` unless you
+   need cross-references to other sprints.
 2. **`<spec-branch>/spec.md`** — ONLY the user stories listed in the prompt.
    Skip unrelated stories even if they're in the same file.
 3. **`<spec-branch>/plan.md`** — skim for the sections relevant to your stories
@@ -195,6 +197,17 @@ the final handoff.
    starts its own instance and will fail with a port conflict if one is
    already running. If the smoke check itself fails, read just the last
    ~30 lines of the log, fix, and retry once.
+
+6. **Verify environment facts**:
+   ```bash
+   node .claude/scripts/verify-environment-facts.mjs
+   ```
+   This script catches orphan `next dev` processes and wrong DB-path
+   recordings in `pipeline/environment-facts.md`. If it exits non-zero,
+   fix the reported issue (kill the orphan, correct the env-facts file)
+   and re-run until it passes. **Failing this script blocks handoff to
+   the evaluator** — the orchestrator runs it again before invoking the
+   evaluator subagent, and a fail there forces the developer to retry.
 
 The build orchestrator handles logging and cycle management — do not write
 to any tracking files.

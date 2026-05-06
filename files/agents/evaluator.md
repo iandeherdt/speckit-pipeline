@@ -173,21 +173,60 @@ correct command in environment-facts.md if you discover it).
 
 After starting the dev server, take a screenshot. If you see a **login page** or get **redirected to /login, /auth, /api/auth, or similar**:
 
-1. **Find credentials** — If credentials are already recorded in
-   `pipeline/environment-facts.md`, use those. Otherwise, discover them
-   once from `prisma/seed.ts`, `.env.local`, or `README.md` and record
-   the LOCATION (file path + variable names, not the secret values) in
-   `pipeline/environment-facts.md` for future cycles.
-2. **Navigate to login** — `mcp__playwright__browser_navigate(url: '/login')` (or whatever auth URL the redirect pointed to)
-3. **Fill credentials** — Use `mcp__playwright__browser_snapshot` to find the form fields, then:
-   - `mcp__playwright__browser_type` for the email/username field
-   - `mcp__playwright__browser_type` for the password field
-   - `mcp__playwright__browser_click` to submit the form
-   - (For multi-field forms you can use `mcp__playwright__browser_fill_form` in one call instead.)
-4. **Verify login** — Take a screenshot to confirm you're past the login
-   page. If login failed, check
-   `mcp__playwright__browser_console_messages` and retry once.
-5. **Screenshot** — Save the post-login screenshot to `pipeline/feedback/` as evidence.
+**Procedures-first lookup**:
+
+```bash
+grep -A 30 '^## Login' pipeline/procedures.md 2>/dev/null
+```
+
+If a Login procedure exists, **follow it step-by-step**. The procedure
+already encodes everything previous cycles learned: cookie-consent
+dismissal, credentials source, expected redirect target, retry rules.
+If a step in the procedure no longer matches reality (selector missing,
+redirect changed), update the procedure with the new state and the
+date — don't silently work around it.
+
+**If no procedure exists**, discover the flow as follows and **append a
+new `## Login` section to `pipeline/procedures.md` before completing
+your evaluation** so the next cycle can skip discovery:
+
+1. **Take a snapshot first**. If a cookie consent banner is visible
+   (look for "Accept All", "Reject", or "Cookie Settings" buttons),
+   click the most permissive accept button BEFORE filling the form.
+   Cookie banners often overlay the form — clicking "Sign in" goes to
+   the banner, and dismissing the banner can rerender the page and
+   clear field values. Handle them up front.
+2. **Find credentials** — Read `prisma/seed.ts`, `.env.local`, or
+   `README.md`. If only an admin user is seeded (no customer test
+   user), use the admin account for verification and cite the
+   admin-as-customer caveat in feedback. **Do NOT guess customer
+   passwords** — guessed attempts often hit rate limits and waste two
+   retry cycles.
+3. **Navigate to login** — `mcp__playwright__browser_navigate(url: '/login')` (or whatever auth URL the redirect pointed to).
+4. **Fill credentials** — Use `mcp__playwright__browser_snapshot` to find the form fields, then `mcp__playwright__browser_fill_form` (preferred for multi-field forms) or `mcp__playwright__browser_type` per field. Click submit with `mcp__playwright__browser_click`.
+5. **Verify login** — Take a screenshot to confirm you're past the login
+   page. If login failed, check `mcp__playwright__browser_console_messages`
+   and retry once. After the second failure, stop and report — do not
+   keep guessing.
+6. **Screenshot** — Save the post-login screenshot to `pipeline/feedback/` as evidence.
+7. **Write the procedure** — Append to `pipeline/procedures.md`:
+   ```markdown
+   ## Login (<role>)
+
+   **When to use**: dev server redirects to /login or shows a login form.
+
+   **Steps**:
+   1. (Cookie banner if present): click "Accept All".
+   2. Navigate to /login.
+   3. Fill `<email-field-label>` with `<email>`.
+   4. Fill `<password-field-label>` with `<password>`.
+   5. Click `<submit-button-label>`.
+   6. Verify: URL becomes `<expected-redirect>`.
+
+   **Credentials source**: `<file-path>` (cite the seed file or env var).
+
+   **Updated**: <YYYY-MM-DD> (Sprint <N> cycle <C>, evaluator)
+   ```
 
 If the app does NOT require login (no redirect, homepage loads normally), skip this step.
 
@@ -202,7 +241,9 @@ the latest branch — the orchestrator already did this.
 **Cycle 1 (first evaluation of this sprint):**
 1. Read `<spec-branch>/spec.md` — extract acceptance criteria ONLY for the
    user stories listed in the prompt.
-2. Read `<spec-branch>/tasks.md` — narrowed to the task IDs in the prompt.
+2. The orchestrator includes the relevant task block from `tasks.md`
+   inline in your prompt. Use it directly — do NOT re-read
+   `<spec-branch>/tasks.md` unless you need cross-references.
 3. Build your verification checklist from these.
 
 **Cycle 2+ (retry after a failed cycle):**
