@@ -119,7 +119,7 @@ List the files in `designs/` to know which prototypes exist.
 1. **Navigate** — `mcp__playwright__browser_navigate(url: 'http://localhost:3100/<prototype>.html')` to open the prototype.
 2. **Desktop view** — `mcp__playwright__browser_resize` to a desktop viewport (e.g. 1440×900), then `mcp__playwright__browser_take_screenshot` + `mcp__playwright__browser_snapshot`.
 3. **Mobile view** — `mcp__playwright__browser_resize` to 375×812, then `mcp__playwright__browser_take_screenshot` + `mcp__playwright__browser_snapshot`.
-4. **Interactions** — `mcp__playwright__browser_click` (or `browser_hover`) on interactive elements, `mcp__playwright__browser_take_screenshot` after each to check hover/focus/active states.
+4. **Interactions** — `mcp__playwright__browser_click` (or `browser_hover`) on interactive elements, then `mcp__playwright__browser_snapshot` to capture the new state. Add a screenshot **only** if the interaction has a visual finding (hover state wrong colour, focus ring missing, etc.).
 5. **Style check** — `mcp__playwright__browser_evaluate` running `getComputedStyle(document.querySelector('<selector>'))` to verify computed styles (colors, fonts, spacing, contrast ratios). The accessibility-tree from `browser_snapshot` covers most structural checks without a screenshot.
 6. **Console** — `mcp__playwright__browser_console_messages` for any JS errors.
 
@@ -128,11 +128,20 @@ plain synchronous values only. For "is the page ready" checks, use
 `document.readyState === 'complete'` rather than `document.fonts.ready`,
 which can hang on font 404s.
 
-**Token-budget reminder**: screenshots are large (≈30–50k input tokens
-each on the next turn). Take screenshots only for visual checks where a
-snapshot is not enough — desktop + mobile per prototype, interaction
-states, and any rubric finding that needs visual evidence. Don't
-double-screenshot the same view.
+### Screenshot budget — read this before Step 2
+
+Each `browser_take_screenshot` returns the image inline as base64 and
+adds roughly **30–50k tokens** to the next turn's prompt. A 10-prototype
+critique that screenshots every interaction state can blow past 500k
+tokens of image payload alone. That is real money and real latency.
+
+**Hard rules:**
+- **2 screenshots per prototype max** by default — one desktop, one mobile. That's the baseline for the rubric.
+- **+1 extra** is allowed per prototype if a rubric FAIL needs visual evidence (e.g. a hover state with the wrong colour, a layout collision, a typography mistake the snapshot wouldn't show).
+- **Never** screenshot a passing structural check. The accessibility-tree snapshot already records "the heading is present and reads X" — don't take a picture to prove it again.
+- **Never** screenshot the same viewport of the same prototype twice. If you scrolled or interacted, the second shot must show a *different* state worth capturing.
+
+**Practical ceiling:** for N prototypes, total screenshots should be in `[N, 3N]`. If you've taken more than `3N`, stop and ask whether each additional shot earned its tokens.
 
 ### Evaluate these four dimensions per prototype:
 
