@@ -50,7 +50,12 @@ This will:
 
 Options:
 - `--dry-run` — Preview what would be installed without writing files
-- `--force` — Overwrite existing files
+- `--force` — Overwrite existing files (full reinstall, including constitution)
+- `--update` — Upgrade pipeline files to the current package version, but only
+  for files you haven't locally modified. Skips user-customized files and never
+  touches the constitution, `pipeline/procedures.md`, `environment-facts.md`, or
+  `run-state.md`. Use this to pull in agent-file improvements without losing
+  local customizations. Mutually exclusive with `--force`.
 
 ## Usage
 
