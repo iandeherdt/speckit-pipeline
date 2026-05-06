@@ -17,6 +17,7 @@ Run `/build` to start the dev/eval loop. The orchestrator reads spec-kit's task 
 - `specs/<latest-branch>/` — spec-kit artifacts (spec, plan, tasks) — always use the highest-numbered subfolder under `specs/`
 - `pipeline/feedback/` — evaluator reports per sprint/cycle
 - `pipeline/build-log.md` — full progress log
+- `pipeline/traces/` — JSONL traces of build/design runs (read with `node .claude/scripts/trace-summarise.mjs pipeline/traces/<file>.jsonl`)
 
 ### Subagents
 - **developer** — implements one sprint, follows plan.md
