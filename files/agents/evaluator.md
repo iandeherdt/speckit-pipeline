@@ -100,39 +100,44 @@ bash, then point Playwright at it.
 
 **0.1 — Start the dev server (bash):**
 
+Use the pipeline helper. It backgrounds the dev command, parses the bound
+URL out of the server's startup output, and writes it to
+`pipeline/dev-server-url`. This handles dev-server port fallback (Next/Vite
+auto-jump to :3001 when :3000 is taken) without you having to guess or
+probe ports.
+
 ```bash
-npm run dev > /tmp/devserver.log 2>&1 &
+DEV_URL=$(node .claude/scripts/start-dev-server.mjs npm run dev)
+echo "Dev server: $DEV_URL"
 ```
+
+If `npm run dev` is not the right command on this project, check
+`pipeline/environment-facts.md` for the recorded dev command.
 
 **Hard rules for this step:**
-- Always redirect output to a FILE with `> /tmp/devserver.log 2>&1 &`. Never
-  pipe a backgrounded long-running process into another command like
-  `npx next dev 2>&1 | head -30 &` — `head` blocks on the pipe and the
-  whole construct hangs.
-- ONE dev server. ONE port. If the first start succeeds, reuse it for the
-  entire evaluation — do NOT `pkill` and restart on a different port
-  "to be safe".
-- Do NOT scan ports (`curl :3001`, `curl :3002`, …). The port is either
-  the one you started on, or recorded in `pipeline/environment-facts.md`.
-  Nothing else.
+- ONE dev server. ONE URL. The helper is idempotent: re-running it while
+  the server is already up just prints the existing URL. Do NOT `pkill`
+  and restart "to be safe".
+- Do NOT scan ports. The URL is whatever the helper prints — it came
+  directly from the server's own startup log.
+- The helper already redirects stdio to `pipeline/dev-server.log`. Never
+  pipe a backgrounded server into `head` or similar — they block on the
+  pipe and hang.
 
-Wait ~8 seconds, then verify:
+If the helper exits 1, it prints the last 30 log lines on stderr. Read
+those, diagnose, fix the underlying issue, and retry ONCE. If it still
+fails, STOP and report — do not enter a restart/wipe/pkill/port-swap
+loop. Do not fall back to code review.
 
-```bash
-curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/
-```
-
-Expected: `200`. If the port differs on this project, the correct port
-should be in `pipeline/environment-facts.md` (or record it there on first
-discovery). If the smoke check fails:
+Then smoke-check:
 
 ```bash
-tail -30 /tmp/devserver.log
+curl -s -o /dev/null -w "%{http_code}\n" "$DEV_URL/"
 ```
 
-Diagnose, fix, and retry ONCE on the same port. If it still fails, STOP
-and report — do not enter a restart/wipe/pkill/port-swap loop. Do not fall
-back to code review.
+Expected: any 2xx/3xx. A 4xx is OK too (the server is up; the route just
+isn't found). Connection refused means the server died after announcing
+its URL — read the log.
 
 **0.2 — Load Playwright tools:**
 
@@ -156,8 +161,11 @@ browser tools.
 
 **0.3 — Navigate to the app:**
 
+Use `$DEV_URL` from step 0.1 (or `cat pipeline/dev-server-url` if
+you've lost the variable):
+
 ```
-mcp__playwright__browser_navigate(url: "http://localhost:3000")
+mcp__playwright__browser_navigate(url: <DEV_URL>)
 ```
 
 Take a screenshot to confirm the app rendered. If it did, proceed.
@@ -335,7 +343,11 @@ When the check IS relevant, it is mandatory and design mismatches are
 sprint-blocking [High] severity. The rest of this section (layout pattern,
 structure, details) is unchanged.
 
-1. Serve the designs folder on a second port (e.g. `npx serve designs -l 3100 &`), then `mcp__playwright__browser_navigate` to `http://localhost:3100/<prototype>.html`. After the comparison, stop the designs server with `pkill -f 'serve designs'`.
+1. Start the designs server via the pipeline helper, which records the URL to a separate file so it doesn't collide with the dev-server URL:
+   ```bash
+   DESIGNS_URL=$(node .claude/scripts/start-dev-server.mjs --url-file=pipeline/designs-server-url --log=pipeline/designs-server.log -- npx serve designs -l 3100)
+   ```
+   Then `mcp__playwright__browser_navigate` to `<DESIGNS_URL>/<prototype>.html`. After the comparison, stop the designs server with `pkill -f 'serve designs'` and remove `pipeline/designs-server-url`.
 2. Take a screenshot at desktop width (use `mcp__playwright__browser_resize` to set the viewport, then `mcp__playwright__browser_take_screenshot`)
 3. Navigate to the corresponding page on the dev server and take a screenshot at the same width
 4. Compare the two screenshots side by side:

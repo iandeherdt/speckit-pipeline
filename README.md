@@ -36,7 +36,7 @@ npx speckit-pipeline init
 This will:
 - Install agents to `.claude/agents/`
 - Install skills to `.claude/skills/`
-- Install helper scripts to `.claude/scripts/` — trace hook, trace summariser, env-facts verifier
+- Install helper scripts to `.claude/scripts/` — trace hook, trace summariser, env-facts verifier, dev-server starter
 - Merge launch configs into `.claude/launch.json` (dev server on port 3000, design server on port 4444)
 - Add required permissions and trace hooks to `.claude/settings.json` (including `mcp__playwright__*`)
 - Add Playwright MCP server at project scope (for browser-based verification)
@@ -145,7 +145,8 @@ The installed constitution enforces these principles during development and eval
   scripts/
     trace-hook.mjs              # Claude Code hook — writes JSONL events to pipeline/traces/
     trace-summarise.mjs         # CLI digest — tool frequency, flails, token totals
-    verify-environment-facts.mjs # Pre-handoff sanity check (orphan servers, DB paths)
+    verify-environment-facts.mjs # Pre-handoff sanity check (orphan servers, DB paths, file size)
+    start-dev-server.mjs        # Start dev server, parse bound URL from output, record to pipeline/
   launch.json
   settings.json
 pipeline/

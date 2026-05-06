@@ -45,22 +45,17 @@ Playwright MCP does NOT manage servers. You must serve the static
 
 **0.1 — Start the designs server (bash):**
 
-```bash
-npx serve designs -l 3100 > /tmp/designsserver.log 2>&1 &
-```
-
-Wait ~3 seconds, then verify:
-
-```bash
-curl -s -o /dev/null -w "%{http_code}" http://localhost:3100/
-```
-
-Expected: `200`. If the smoke check fails:
+Use the pipeline helper. It records the bound URL to a separate file
+(so it doesn't collide with the dev-server URL the build loop uses) and
+parses the actual port from the server's own output, so `serve` falling
+back to a different port just works.
 
 ```bash
-tail -30 /tmp/designsserver.log
+DESIGNS_URL=$(node .claude/scripts/start-dev-server.mjs --url-file=pipeline/designs-server-url --log=pipeline/designs-server.log -- npx serve designs -l 3100)
+echo "Designs server: $DESIGNS_URL"
 ```
 
+If the helper exits 1, it prints the last 30 log lines on stderr.
 Diagnose, fix, and retry ONCE. If it still fails, STOP and report — do
 not enter a restart loop or fall back to reading HTML.
 
@@ -86,8 +81,12 @@ browser tools.
 **0.3 — Stop protocol:**
 
 At the end of the evaluation (after Step 2), close the browser with
-`mcp__playwright__browser_close` and stop the designs server with
-`pkill -f 'serve designs'`.
+`mcp__playwright__browser_close`, stop the designs server with
+`pkill -f 'serve designs'`, and remove the URL marker:
+
+```bash
+rm -f pipeline/designs-server-url
+```
 
 ---
 

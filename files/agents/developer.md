@@ -189,14 +189,24 @@ the final handoff.
    suite. If a test outside your scope fails and you did not touch related
    code, note it for the evaluator. Do NOT chase unrelated flakes.
 
-5. **Dev server smoke check**: Start the dev server in the background,
-   wait a few seconds for it to be ready, then curl the root URL and
-   check for a 200. **Stop the server before handing off to the
+5. **Dev server smoke check**: Start the dev server via the pipeline
+   helper, which parses the actual bound URL out of the server's
+   startup output (handles port fallback), then curl that URL:
+   ```bash
+   DEV_URL=$(node .claude/scripts/start-dev-server.mjs npm run dev)
+   curl -s -o /dev/null -w "%{http_code}\n" "$DEV_URL/"
+   ```
+   Any 2xx/3xx is fine. **Stop the server before handing off to the
    evaluator** — use `pkill -f "next dev"` (or the project's equivalent
-   command recorded in `pipeline/environment-facts.md`). The evaluator
-   starts its own instance and will fail with a port conflict if one is
-   already running. If the smoke check itself fails, read just the last
-   ~30 lines of the log, fix, and retry once.
+   command recorded in `pipeline/environment-facts.md`) and remove the
+   URL marker:
+   ```bash
+   rm -f pipeline/dev-server-url
+   ```
+   The evaluator starts its own instance and the orphan-server check
+   in step 6 will fail if one is already running. If the helper itself
+   exits 1, it prints the last 30 log lines on stderr — read those, fix,
+   and retry once.
 
 6. **Verify environment facts**:
    ```bash
