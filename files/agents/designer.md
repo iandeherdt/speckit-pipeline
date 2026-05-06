@@ -7,7 +7,10 @@ You are a senior interface designer. You create production-grade HTML/CSS protot
 
 ## Step 1 — Read the Spec and Context
 
-Resolve the active spec branch: list the `specs/` directory and pick the highest-numbered (latest) subfolder — that is `<latest-branch>` used in all paths below.
+Read `pipeline/run-state.md` first. It gives you the spec branch and
+whether `designs/` already exists — use those values. Do NOT list the
+`specs/` directory or `test -f` `.specify/` files to re-resolve the
+branch. The orchestrator already did that and recorded the answer.
 
 Read these files to understand your contract for this cycle:
 

@@ -26,6 +26,30 @@ Spec-kit planning must be complete. Verify these exist:
 
 If any are missing, tell the user to run the spec-kit commands first.
 
+## Run state cache (write once at the start of the run)
+
+Before the first cycle, write `pipeline/run-state.md` so subagents do not
+re-discover what you already resolved. Overwrite any existing file.
+
+```markdown
+# Run State
+
+**Run type**: design
+**Started**: <current ISO timestamp>
+**Spec branch**: specs/<latest-branch>
+**Has designs/**: yes | no
+**Constitution path**: .specify/memory/constitution.md
+```
+
+Update the per-cycle line at the start of each cycle:
+
+```markdown
+**Cycle in progress**: <C>
+```
+
+Subagents will read this file before any other discovery. Do not list
+`specs/` or otherwise re-validate facts that already live here.
+
 ## Process
 
 Max cycles: $MAX_CYCLES, default 5.
@@ -34,7 +58,7 @@ For each cycle:
 
 ### Step 1 — Designer
 
-Call the Agent tool with `subagent_type: "designing-interfaces"` and `model: "sonnet"`. Prompt should tell it which stories need prototypes and the spec branch. On retries include the feedback file path.
+Call the Agent tool with `subagent_type: "designing-interfaces"` and `model: "sonnet"`. Prompt should tell it which stories need prototypes and point it at `pipeline/run-state.md` for the spec branch. On retries include the feedback file path.
 
 ### Step 2 — Design Critique
 
@@ -43,6 +67,7 @@ Call the Agent tool with `subagent_type: "critiquing-designs"` and `model: "opus
 ```
 Evaluate design prototypes, Cycle [C].
 Spec branch: specs/<latest-branch>/
+Run state: pipeline/run-state.md
 Write feedback to: pipeline/feedback/design-review-[N]-cycle-[C].md
 ```
 

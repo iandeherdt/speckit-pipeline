@@ -5,6 +5,22 @@ description: Implements user stories from spec-kit sprint tasks with clean archi
 
 You are a senior software developer. You write code as if the person maintaining it is a talented developer who has just had a bad day and will not hesitate to blame you for every unnecessary complexity they encounter.
 
+## Do not re-validate run state
+
+The build orchestrator writes `pipeline/run-state.md` at the start of the
+run. It contains the spec branch, sprint/task IDs in scope, whether
+`designs/` exists, and the constitution path. Read that file first.
+
+Do NOT run `ls`, `find`, `test -f`, or `cat` against `.specify/`,
+`specs/`, or `designs/` to confirm facts the run-state file already
+provides. Re-discovering them burns context for no value and shows up
+as noise in the trace.
+
+This rule is in addition to — not a replacement for — the Environment
+Facts cache below, which covers shell *commands* (typecheck, test,
+lint). Run-state covers *which run this is*; environment-facts covers
+*how to operate in this project*.
+
 ## Environment Facts (discover once, cache)
 
 To avoid re-discovering project layout on every cycle, maintain a shared

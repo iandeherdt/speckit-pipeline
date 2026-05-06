@@ -46,7 +46,9 @@ Save the returned `serverId`. If this fails, STOP — do not proceed without bro
 
 ## Step 1 — Read the Specification
 
-Resolve the active spec branch: list the `specs/` directory and pick the highest-numbered (latest) subfolder — that is `<latest-branch>` used in all paths below.
+Read `pipeline/run-state.md` first for the spec branch — that is
+`<latest-branch>` used in all paths below. Do NOT list the `specs/`
+directory to re-resolve it; the orchestrator already did.
 
 Read `specs/<latest-branch>/spec.md` to understand what the designs must cover. Extract:
 

@@ -57,19 +57,17 @@ function summariseInput(toolName, toolInput) {
   return { _truncated: true, preview: truncate(json, MAX_INPUT_BYTES) };
 }
 
-function looksLikeError(toolResponse, text) {
-  if (toolResponse && typeof toolResponse === 'object') {
-    if (toolResponse.is_error === true) return true;
-    if (typeof toolResponse.stderr === 'string' && toolResponse.stderr.trim()) return true;
-    if (typeof toolResponse.error === 'string' && toolResponse.error.trim()) return true;
-    if (typeof toolResponse.exit_code === 'number' && toolResponse.exit_code !== 0) return true;
-  }
-  // Fall back to lexical sniffing on the rendered text for tools that don't
-  // surface errors as structured fields. Use word-ish patterns so field
-  // names like "stderr": "" don't trigger a false positive.
-  const head = (text || '').slice(0, 4000);
-  return /\b(error|failed|exception|enoent|eacces|traceback)\b/i.test(head)
-    && !/\b(no errors?|0 errors?)\b/i.test(head);
+function looksLikeError(toolResponse) {
+  // Trust only structured signals. Lexical sniffing on body text was tried
+  // in v1.3.0 and produced too many false positives — any source file that
+  // contained the word "error" (NextResponse error responses, error-handling
+  // code, etc.) flagged on a normal Read, drowning real failures in noise.
+  if (!toolResponse || typeof toolResponse !== 'object') return false;
+  if (toolResponse.is_error === true) return true;
+  if (typeof toolResponse.stderr === 'string' && toolResponse.stderr.trim()) return true;
+  if (typeof toolResponse.error === 'string' && toolResponse.error.trim()) return true;
+  if (typeof toolResponse.exit_code === 'number' && toolResponse.exit_code !== 0) return true;
+  return false;
 }
 
 function summariseOutput(toolResponse) {
@@ -87,7 +85,7 @@ function summariseOutput(toolResponse) {
     text = String(toolResponse);
   }
   const len = text.length;
-  const error = looksLikeError(toolResponse, text);
+  const error = looksLikeError(toolResponse);
   if (len <= TAIL_BYTES * 2 + 32) {
     return { len, error, body: text };
   }

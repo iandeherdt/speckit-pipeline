@@ -21,6 +21,36 @@ Spec-kit planning must be complete. Verify these exist:
 
 If any are missing, tell the user to run the spec-kit commands first.
 
+## Run state cache (write once at the start of the run)
+
+Before the first sprint, write `pipeline/run-state.md` so subagents do not
+re-discover what you already resolved. Overwrite any existing file. The
+content is plain markdown with one fact per line:
+
+```markdown
+# Run State
+
+**Run type**: build
+**Started**: <current ISO timestamp>
+**Spec branch**: specs/<latest-branch>
+**Sprint count**: <total sprints in tasks.md>
+**Has designs/**: yes | no
+**Constitution path**: .specify/memory/constitution.md
+```
+
+Update the per-sprint detail at the start of each sprint (append or
+rewrite the **Sprint in progress** block):
+
+```markdown
+**Sprint in progress**: Sprint <N> — Cycle <C>
+**Stories in scope**: US-XX, US-YY
+**Task IDs in scope**: T001, T002, T003
+```
+
+Subagents will read this file before any other discovery. Do not list
+`specs/`, `test -f .specify/extensions.yml`, or otherwise re-validate
+facts that already live here.
+
 ## Process
 
 Read the sprint tasks from `specs/<latest-branch>/tasks.md` in order.
@@ -29,7 +59,7 @@ For each sprint (max cycles per sprint: $MAX_CYCLES, default 5):
 
 ### Step 1 — Developer
 
-Call the Agent tool with `subagent_type: "developing-features"` and `model: "sonnet"`. Prompt should tell it which sprint, stories, and spec branch. On retries include the feedback file path.
+Call the Agent tool with `subagent_type: "developing-features"` and `model: "sonnet"`. Prompt should tell it which sprint, stories, and spec branch, and point it at `pipeline/run-state.md` for resolved run facts. On retries include the feedback file path.
 
 ### Step 2 — Evaluator
 
@@ -40,6 +70,7 @@ Evaluate Sprint [N], Cycle [C].
 Stories in scope: [list story IDs and titles].
 Tasks in scope: [list task IDs, e.g. T001, T002, T003].
 Spec branch: specs/<latest-branch>/
+Run state: pipeline/run-state.md
 Write feedback to: pipeline/feedback/sprint-[N]-cycle-[C].md
 ```
 
