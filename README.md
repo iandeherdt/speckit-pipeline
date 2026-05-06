@@ -36,12 +36,15 @@ npx speckit-pipeline init
 This will:
 - Install agents to `.claude/agents/`
 - Install skills to `.claude/skills/`
+- Install helper scripts to `.claude/scripts/` — trace hook, trace summariser, env-facts verifier
 - Merge launch configs into `.claude/launch.json` (dev server on port 3000, design server on port 4444)
-- Add required permissions to `.claude/settings.json` (including `mcp__playwright__*`)
+- Add required permissions and trace hooks to `.claude/settings.json` (including `mcp__playwright__*`)
 - Add Playwright MCP server at project scope (for browser-based verification)
 - Append pipeline documentation to `CLAUDE.md`
 - Install an opinionated constitution to `.specify/memory/constitution.md`
 - Create `pipeline/feedback/` for evaluator reports
+- Create `pipeline/traces/` for JSONL run traces
+- Seed `pipeline/procedures.md` with the overlay-dismissal meta-procedure (existing files are preserved)
 
 > **Note on the constitution:** The installer ships an opinionated constitution with 7 principles (Test-First, Security-First, Code Quality, Component Separation, Library-First, Database Migrations, Design Fidelity). If your project has the default blank spec-kit template (`[PROJECT_NAME] Constitution`), it will be **replaced automatically**. If you've already written your own constitution, it will be preserved — use `--force` to overwrite. Review `.specify/memory/constitution.md` after install and adjust the principles to fit your project.
 
@@ -88,13 +91,32 @@ Issues marked `[High]` always block — they must be resolved before a sprint ca
 
 ### Authenticated apps
 
-The evaluator automatically handles apps that require login. When the dev server starts and the evaluator detects a login page or auth redirect, it will:
+The evaluator handles apps that require login. On the first cycle:
 
-1. Look for test credentials in `prisma/seed.ts` or `.env.local`
-2. Fill and submit the login form
-3. Confirm authentication before proceeding with browser testing
+1. Dismiss any overlay blocking the form (cookie consent, GDPR notice, etc.) — guided by the `## Overlays blocking forms` meta-procedure pre-seeded in `pipeline/procedures.md`
+2. Look for test credentials in `prisma/seed.ts`, `.env.local`, or `README.md`
+3. Fill and submit the login form
+4. Confirm authentication, then write a `## Login` procedure to `pipeline/procedures.md` so future cycles skip discovery
 
-No extra configuration needed — just make sure your seed data includes a test user.
+No extra configuration needed — make sure your seed data includes at least one test user. If only an admin user is seeded, the evaluator uses admin-as-customer for verification and notes the caveat in feedback (rather than guessing customer passwords and hitting rate limits).
+
+### Per-project caches
+
+Three files in `pipeline/` accumulate project knowledge between cycles:
+
+- **`pipeline/environment-facts.md`** — Stable shell facts (typecheck command, dev server command, env file path, DB resolution). Written by the developer on cycle 1, read first on later cycles. The `verify-environment-facts.mjs` script (run automatically before evaluator hand-off) cross-checks recorded DB paths against Prisma's resolution rules and flags orphan dev servers.
+- **`pipeline/procedures.md`** — Multi-step UI flows (login, logout, navigation patterns) discovered by the evaluator and design-critic. Subagents grep by procedure name before doing browser work. Discovered flows survive upgrades (`init --force` never overwrites existing procedures).
+- **`pipeline/run-state.md`** — Per-run state written by the orchestrator (active spec branch, sprint plan, in-scope task IDs). Subagents read it first to avoid re-resolving what the orchestrator already determined.
+
+### Tracing
+
+Every tool call by every subagent is logged as JSONL to `pipeline/traces/<run>.jsonl` via Claude Code hooks. To digest a trace:
+
+```bash
+node .claude/scripts/trace-summarise.mjs pipeline/traces/<file>.jsonl
+```
+
+Output includes per-tool call frequency, suspected flailing (≥5 consecutive identical-fingerprint calls), per-subagent stop markers, and total token usage by run.
 
 ## Constitution principles
 
@@ -120,12 +142,20 @@ The installed constitution enforces these principles during development and eval
   skills/
     build/SKILL.md
     design/SKILL.md
+  scripts/
+    trace-hook.mjs              # Claude Code hook — writes JSONL events to pipeline/traces/
+    trace-summarise.mjs         # CLI digest — tool frequency, flails, token totals
+    verify-environment-facts.mjs # Pre-handoff sanity check (orphan servers, DB paths)
   launch.json
   settings.json
 pipeline/
-  feedback/          # Evaluator reports per sprint/cycle
-  build-log.md       # Full progress log
-designs/             # HTML/CSS prototypes (created by designer)
+  feedback/                     # Evaluator reports per sprint/cycle
+  traces/                       # JSONL traces of every /build and /design run
+  build-log.md                  # Full progress log (human-readable)
+  environment-facts.md          # Cached project facts (commands, paths) — written by developer
+  procedures.md                 # Cached UI flows (login, etc.) — written by evaluator/critic
+  run-state.md                  # Per-run state — written by orchestrator
+designs/                        # HTML/CSS prototypes (created by designer)
 ```
 
 ## License

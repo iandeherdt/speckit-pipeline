@@ -64,12 +64,14 @@ from `tasks.md` for the in-scope task IDs. Use a single command and
 capture the output for inclusion in subagent prompts:
 
 ```bash
-awk '/^- \[[ x]\] T[0-9]+/{p=0} /^- \[[ x]\] (T002|T003|T004)\b/{p=1} p' \
+awk '/^- \[[ x]\] T[0-9]+/{p=0} /^- \[[ x]\] (T002|T003|T004) /{p=1} p' \
   specs/<latest-branch>/tasks.md
 ```
 
-(Substitute the actual task IDs in scope.) Hold this output as the
-"task block" — pass it inline in both the developer and evaluator
+(Substitute the actual task IDs in scope. Note the literal space after
+`(T002|...)` — POSIX awk does not support `\b` word boundaries, so
+match the space that follows the task ID instead.) Hold this output as
+the "task block" — pass it inline in both the developer and evaluator
 prompts as a fenced markdown block. This avoids both subagents
 re-reading the full 20–30 KB `tasks.md` file every cycle.
 

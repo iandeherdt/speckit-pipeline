@@ -188,28 +188,44 @@ date — don't silently work around it.
 
 **If no procedure exists**, discover the flow as follows and **append a
 new `## Login` section to `pipeline/procedures.md` before completing
-your evaluation** so the next cycle can skip discovery:
+your evaluation** so the next cycle can skip discovery.
 
-1. **Take a snapshot first**. If a cookie consent banner is visible
-   (look for "Accept All", "Reject", or "Cookie Settings" buttons),
-   click the most permissive accept button BEFORE filling the form.
-   Cookie banners often overlay the form — clicking "Sign in" goes to
-   the banner, and dismissing the banner can rerender the page and
-   clear field values. Handle them up front.
-2. **Find credentials** — Read `prisma/seed.ts`, `.env.local`, or
-   `README.md`. If only an admin user is seeded (no customer test
+**Step 0b.0 — Dismiss overlays first (BEFORE you do anything else)**:
+
+Before any form interaction, run the procedure that the installer pre-seeded
+in `pipeline/procedures.md`:
+
+```bash
+grep -A 30 '^## Overlays blocking forms' pipeline/procedures.md
+```
+
+Follow it. The short version: take `mcp__playwright__browser_snapshot`,
+look for buttons with text like "Accept All" / "Got it" / "OK" near the
+top of the tree (these are usually overlay controls), click the most
+permissive accept button, take a fresh snapshot to confirm the overlay
+is gone. **THEN proceed with the rest of Step 0b.** Skipping this step
+means your form fills go to a banner and your credentials get cleared
+on rerender — every site we've integrated with has at least one overlay.
+
+**Step 0b.1 — Find credentials** — Read `prisma/seed.ts`, `.env.local`,
+   or `README.md`. If only an admin user is seeded (no customer test
    user), use the admin account for verification and cite the
    admin-as-customer caveat in feedback. **Do NOT guess customer
    passwords** — guessed attempts often hit rate limits and waste two
    retry cycles.
-3. **Navigate to login** — `mcp__playwright__browser_navigate(url: '/login')` (or whatever auth URL the redirect pointed to).
-4. **Fill credentials** — Use `mcp__playwright__browser_snapshot` to find the form fields, then `mcp__playwright__browser_fill_form` (preferred for multi-field forms) or `mcp__playwright__browser_type` per field. Click submit with `mcp__playwright__browser_click`.
-5. **Verify login** — Take a screenshot to confirm you're past the login
+
+**Step 0b.2 — Navigate to login** — `mcp__playwright__browser_navigate(url: '/login')` (or whatever auth URL the redirect pointed to).
+
+**Step 0b.3 — Fill credentials** — Use `mcp__playwright__browser_snapshot` to find the form fields, then `mcp__playwright__browser_fill_form` (preferred for multi-field forms) or `mcp__playwright__browser_type` per field. Click submit with `mcp__playwright__browser_click`.
+
+**Step 0b.4 — Verify login** — Take a screenshot to confirm you're past the login
    page. If login failed, check `mcp__playwright__browser_console_messages`
    and retry once. After the second failure, stop and report — do not
    keep guessing.
-6. **Screenshot** — Save the post-login screenshot to `pipeline/feedback/` as evidence.
-7. **Write the procedure** — Append to `pipeline/procedures.md`:
+
+**Step 0b.5 — Screenshot** — Save the post-login screenshot to `pipeline/feedback/` as evidence.
+
+**Step 0b.6 — Write the procedure** — Append to `pipeline/procedures.md`:
    ```markdown
    ## Login (<role>)
 

@@ -45,43 +45,74 @@ function info(msg) {
 // -----------------------------------------------------------------------
 // Check 1 — No orphan dev servers
 // -----------------------------------------------------------------------
+//
+// The pattern to match against `pgrep -f` is project-specific (Next.js
+// uses `next dev`, Vite uses `vite`, Rails uses `rails server`, etc.).
+// We read it from pipeline/environment-facts.md, which the developer
+// agent populates on cycle 1 with a "Stop with: pkill -f '<pattern>'"
+// line. If env-facts hasn't been written yet (first cycle), we skip
+// this check with an info note — there's nothing to validate against.
+
+function readStopPatternFromEnvFacts() {
+  const envFactsPath = join(ROOT, 'pipeline', 'environment-facts.md');
+  if (!existsSync(envFactsPath)) return null;
+  const content = readFileSync(envFactsPath, 'utf8');
+  // Match patterns like:
+  //   - Stop with: `pkill -f "next dev"`
+  //   - Stop the server: pkill -f 'rails server'
+  //   - Use `pkill -f vite` to stop
+  // Try quoted forms first (preserves multi-word patterns like "rails server"),
+  // then unquoted (single token).
+  const quotedRe = /pkill\s+-f\s+(?:"([^"\n]+)"|'([^'\n]+)'|`([^`\n]+)`)/;
+  const m = content.match(quotedRe);
+  if (m) return (m[1] || m[2] || m[3]).trim();
+  const unquotedRe = /pkill\s+-f\s+([^\s"'`)\n]+)/;
+  const m2 = content.match(unquotedRe);
+  return m2 ? m2[1].trim() : null;
+}
 
 function checkNoOrphanDevServers() {
-  // Default pattern: next dev. Could be extended to read environment-facts
-  // for the project's stop command, but starting simple.
-  const patterns = ['next dev'];
-
-  const orphans = [];
-  for (const pattern of patterns) {
-    try {
-      const out = execSync(`pgrep -f ${JSON.stringify(pattern)} || true`, {
-        encoding: 'utf8',
-        stdio: ['ignore', 'pipe', 'ignore'],
-      }).trim();
-      if (out) {
-        // Filter out our own process and the pgrep itself by checking the
-        // command line; pgrep -f matches itself sometimes.
-        const pids = out.split('\n').filter((p) => p && Number(p) !== process.pid);
-        for (const pid of pids) {
-          orphans.push({ pid: pid.trim(), pattern });
-        }
-      }
-    } catch {
-      // pgrep returned non-zero (no match) — fine.
-    }
-  }
-
-  if (orphans.length === 0) {
-    pass('No orphan dev servers running');
+  const pattern = readStopPatternFromEnvFacts();
+  if (!pattern) {
+    info(
+      'No `pkill -f "<pattern>"` Stop line in pipeline/environment-facts.md — skipping orphan dev-server check'
+    );
     return;
   }
 
-  const detail = orphans
-    .map((o) => `PID ${o.pid} (matched: ${o.pattern})`)
-    .join('\n');
+  const orphans = [];
+  try {
+    const out = execSync(`pgrep -f ${JSON.stringify(pattern)} || true`, {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+    if (out) {
+      const pids = out
+        .split('\n')
+        .map((p) => p.trim())
+        .filter((p) => p && Number(p) !== process.pid);
+      for (const pid of pids) {
+        orphans.push({ pid, pattern });
+      }
+    }
+  } catch {
+    // pgrep returned non-zero (no match) — fine.
+  }
+
+  if (orphans.length === 0) {
+    pass(`No orphan dev servers running (pattern: ${pattern})`);
+    return;
+  }
+
+  const pids = orphans.map((o) => o.pid).join(' ');
+  const detail =
+    orphans.map((o) => `PID ${o.pid}`).join(', ') +
+    `\n` +
+    `Try: pkill -f ${JSON.stringify(pattern)}\n` +
+    `Or kill the specific PID(s): kill ${pids}`;
   fail(
-    'Orphan dev server(s) detected — must be stopped before handoff',
-    `${detail}\nStop with: pkill -f "next dev"`
+    `Orphan dev server(s) detected — must be stopped before handoff`,
+    detail
   );
 }
 
