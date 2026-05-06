@@ -12,6 +12,9 @@
 //   2. Wrong DB path recorded in environment-facts.md when two `.db`
 //      files exist (Prisma resolves `file:./X` relative to the schema
 //      file, NOT the project root).
+//   3. Source files exceeding the Constitution's 500-line ceiling
+//      (Principle III). Caught pre-handoff so the evaluator doesn't
+//      have to flag it post-hoc.
 //
 // Exit 0 = all checks pass. Exit 1 = at least one failure (block handoff).
 
@@ -345,12 +348,120 @@ function rel(absPath) {
 }
 
 // -----------------------------------------------------------------------
+// Check 3 — File size ceiling (Constitution Principle III)
+// -----------------------------------------------------------------------
+//
+// Looks at source files the developer just touched (working tree changes,
+// untracked files, and the most recent commit) and fails if any exceed
+// 500 lines. Project-agnostic: skips test files, type declarations, and
+// generated/vendored output.
+
+const MAX_LINES = 500;
+
+const SOURCE_EXT_RE =
+  /\.(ts|tsx|js|jsx|mjs|cjs|vue|svelte|py|rb|go|rs|java|kt|swift|c|h|cpp|hpp|cs|php|scala|ex|exs)$/i;
+
+const TEST_PATH_RE = /(?:^|\/)(?:__tests__|__mocks__|tests?|e2e|fixtures?)\//;
+const TEST_FILE_RE = /\.(?:test|spec)\.[a-z]+$/i;
+const GENERATED_RE =
+  /(?:^|\/)(?:node_modules|\.next|\.nuxt|\.svelte-kit|dist|build|out|coverage|\.turbo|\.vercel|vendor|\.git)\//;
+const GENERATED_FILE_RE = /(?:\.generated\.|\.gen\.|\.d\.ts$)/i;
+
+function gitChangedFiles() {
+  const files = new Set();
+  const run = (cmd) => {
+    try {
+      return execSync(cmd, {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+        cwd: ROOT,
+      });
+    } catch {
+      return '';
+    }
+  };
+
+  // Working-tree + staged changes vs HEAD.
+  for (const line of run('git diff --name-only HEAD').split('\n')) {
+    if (line) files.add(line);
+  }
+  // Untracked files the developer just created.
+  for (const line of run('git ls-files --others --exclude-standard').split('\n')) {
+    if (line) files.add(line);
+  }
+  // Files in the most recent commit (in case the developer committed already).
+  for (const line of run('git diff --name-only HEAD~1 HEAD').split('\n')) {
+    if (line) files.add(line);
+  }
+  return [...files];
+}
+
+function checkFileSizes() {
+  let changed;
+  try {
+    changed = gitChangedFiles();
+  } catch {
+    info('Not a git repository (or git unavailable) — skipping file-size check');
+    return;
+  }
+
+  const candidates = changed.filter((f) => {
+    if (!SOURCE_EXT_RE.test(f)) return false;
+    if (TEST_PATH_RE.test(f)) return false;
+    if (TEST_FILE_RE.test(f)) return false;
+    if (GENERATED_RE.test(f)) return false;
+    if (GENERATED_FILE_RE.test(f)) return false;
+    return true;
+  });
+
+  if (candidates.length === 0) {
+    info('No changed source files to size-check');
+    return;
+  }
+
+  const violations = [];
+  for (const file of candidates) {
+    const full = join(ROOT, file);
+    if (!existsSync(full)) continue; // deleted file in the diff
+    let content;
+    try {
+      content = readFileSync(full, 'utf8');
+    } catch {
+      continue;
+    }
+    const lineCount = content.split('\n').length;
+    if (lineCount > MAX_LINES) {
+      violations.push({ file, lineCount });
+    }
+  }
+
+  if (violations.length === 0) {
+    pass(`All ${candidates.length} changed source file(s) within ${MAX_LINES}-line limit`);
+    return;
+  }
+
+  const detail =
+    violations
+      .sort((a, b) => b.lineCount - a.lineCount)
+      .map((v) => `${v.file}: ${v.lineCount} lines`)
+      .join('\n') +
+    `\n` +
+    `Constitution Principle III caps source files at ${MAX_LINES} lines. ` +
+    `Refactor before handoff: extract subcomponents, split helpers into separate modules, or move types to a dedicated file.`;
+  fail(
+    `${violations.length} source file(s) exceed the ${MAX_LINES}-line limit`,
+    detail
+  );
+}
+
+// -----------------------------------------------------------------------
 // Run
 // -----------------------------------------------------------------------
 
 process.stdout.write('verify-environment-facts:\n');
 checkNoOrphanDevServers();
 checkDbPathConsistency();
+checkFileSizes();
 
 if (failures > 0) {
   process.stdout.write(`\n${failures} check(s) failed — fix before handoff.\n`);
