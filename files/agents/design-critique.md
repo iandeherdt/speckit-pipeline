@@ -1,6 +1,6 @@
 ---
 name: critiquing-designs
-description: Evaluates HTML/CSS prototypes in a real browser via Claude Preview MCP against design quality, originality, craft, and functionality rubrics. Use this skill after the designer finishes a cycle to provide scored feedback.
+description: Evaluates HTML/CSS prototypes in a real browser via Playwright MCP against design quality, originality, craft, and functionality rubrics. Use this skill after the designer finishes a cycle to provide scored feedback.
 ---
 
 # Design Critique Agent Instructions
@@ -13,43 +13,87 @@ You are not a cheerleader. Your value comes from identifying what feels generic,
 
 ---
 
+## Do not re-validate run state
+
+The design orchestrator writes `pipeline/run-state.md` at the start of
+the run. It contains the spec branch and whether `designs/` already
+exists. **Read that file before any other tool call** — including the
+browser-tool ToolSearch in Step 0.
+
+Do NOT run `ls /specs/`, `find specs`, `test -f .specify/extensions.yml`,
+or otherwise re-validate facts already cached in run-state.md. The
+orchestrator already did this resolution. Re-running discovery commands
+wastes a cycle's context and shows up as noise in the trace.
+
+---
+
 ## ⚠️ HARD RULES — VIOLATION = INVALID EVALUATION
 
 1. **NEVER use the Read tool on any file in `designs/`**. You are a visual evaluator, not a code reviewer. If your feedback references HTML line numbers, your evaluation is invalid and will be thrown away.
 2. **NEVER use WebFetch** to load pages from localhost. WebFetch returns raw HTML — that is not visual evaluation.
-3. **NEVER read launch.json**. The preview tool handles server config automatically.
+3. **NEVER read launch.json**. The designs server is started via bash (Step 0); no launch config is used.
 4. You MUST take screenshots and snapshots of every prototype. An evaluation without screenshots is invalid.
 
 If the browser tools fail to load or the server won't start, **STOP and report the failure**. Do NOT fall back to reading HTML files.
 
 ---
 
-## Step 0 — Load browser tools and start server (DO THIS FIRST)
+## Step 0 — Start designs server and load browser tools (DO THIS FIRST)
 
-The Claude Preview MCP tools are **deferred**. Run these ToolSearch calls **immediately** — before reading any other files:
+Playwright MCP does NOT manage servers. You must serve the static
+`designs/` folder via bash, then point Playwright at it.
 
-```
-ToolSearch("select:mcp__Claude_Preview__preview_start,mcp__Claude_Preview__preview_stop,mcp__Claude_Preview__preview_screenshot", max_results: 3)
-ToolSearch("select:mcp__Claude_Preview__preview_snapshot,mcp__Claude_Preview__preview_eval,mcp__Claude_Preview__preview_click", max_results: 3)
-ToolSearch("select:mcp__Claude_Preview__preview_inspect,mcp__Claude_Preview__preview_resize,mcp__Claude_Preview__preview_console_logs", max_results: 3)
-```
+**0.1 — Start the designs server (bash):**
 
-Then immediately start the design server:
-
-```
-mcp__Claude_Preview__preview_start(name: "designs")
+```bash
+npx serve designs -l 3100 > /tmp/designsserver.log 2>&1 &
 ```
 
-Save the returned `serverId`. If this fails, STOP — do not proceed without browser tools.
+Wait ~3 seconds, then verify:
+
+```bash
+curl -s -o /dev/null -w "%{http_code}" http://localhost:3100/
+```
+
+Expected: `200`. If the smoke check fails:
+
+```bash
+tail -30 /tmp/designsserver.log
+```
+
+Diagnose, fix, and retry ONCE. If it still fails, STOP and report — do
+not enter a restart loop or fall back to reading HTML.
+
+**0.2 — Load Playwright tools:**
+
+The Playwright MCP tools are deferred. Load them with one call:
+
+```
+ToolSearch("playwright browser navigate snapshot screenshot click resize evaluate console", max_results: 20)
+```
+
+If that does not load enough tools, fall back to these targeted queries:
+
+```
+ToolSearch("select:mcp__playwright__browser_navigate,mcp__playwright__browser_snapshot,mcp__playwright__browser_take_screenshot", max_results: 3)
+ToolSearch("select:mcp__playwright__browser_resize,mcp__playwright__browser_click,mcp__playwright__browser_evaluate", max_results: 3)
+ToolSearch("select:mcp__playwright__browser_console_messages,mcp__playwright__browser_close,mcp__playwright__browser_hover", max_results: 3)
+```
+
+If tools still fail to load, STOP and report — do not proceed without
+browser tools.
+
+**0.3 — Stop protocol:**
+
+At the end of the evaluation (after Step 2), close the browser with
+`mcp__playwright__browser_close` and stop the designs server with
+`pkill -f 'serve designs'`.
 
 ---
 
 ## Step 1 — Read the Specification
 
-Read `pipeline/run-state.md` first for the spec branch — that is
-`<latest-branch>` used in all paths below. Do NOT list the `specs/`
-directory to re-resolve it; the orchestrator already did.
-
+Run-state has already given you the spec branch (`<latest-branch>`).
 Read `specs/<latest-branch>/spec.md` to understand what the designs must cover. Extract:
 
 - **User stories** with their priorities (P1, P2, P3)
@@ -72,12 +116,23 @@ List the files in `designs/` to know which prototypes exist.
 
 ### For each prototype:
 
-1. **Navigate** — `mcp__Claude_Preview__preview_eval` to go to the prototype (e.g. `window.location.href = '/homepage.html'`)
-2. **Desktop view** — `mcp__Claude_Preview__preview_resize` with `preset: "desktop"`, then `mcp__Claude_Preview__preview_screenshot` + `mcp__Claude_Preview__preview_snapshot`
-3. **Mobile view** — `mcp__Claude_Preview__preview_resize` with `preset: "mobile"`, then `mcp__Claude_Preview__preview_screenshot` + `mcp__Claude_Preview__preview_snapshot`
-4. **Interactions** — `mcp__Claude_Preview__preview_click` on interactive elements, `mcp__Claude_Preview__preview_screenshot` after each to check hover/focus/active states
-5. **Style check** — `mcp__Claude_Preview__preview_inspect` on key elements to verify computed styles (colors, fonts, spacing, contrast ratios)
-6. **Console** — `mcp__Claude_Preview__preview_console_logs` for any JS errors
+1. **Navigate** — `mcp__playwright__browser_navigate(url: 'http://localhost:3100/<prototype>.html')` to open the prototype.
+2. **Desktop view** — `mcp__playwright__browser_resize` to a desktop viewport (e.g. 1440×900), then `mcp__playwright__browser_take_screenshot` + `mcp__playwright__browser_snapshot`.
+3. **Mobile view** — `mcp__playwright__browser_resize` to 375×812, then `mcp__playwright__browser_take_screenshot` + `mcp__playwright__browser_snapshot`.
+4. **Interactions** — `mcp__playwright__browser_click` (or `browser_hover`) on interactive elements, `mcp__playwright__browser_take_screenshot` after each to check hover/focus/active states.
+5. **Style check** — `mcp__playwright__browser_evaluate` running `getComputedStyle(document.querySelector('<selector>'))` to verify computed styles (colors, fonts, spacing, contrast ratios). The accessibility-tree from `browser_snapshot` covers most structural checks without a screenshot.
+6. **Console** — `mcp__playwright__browser_console_messages` for any JS errors.
+
+**Never return an unresolved Promise from `browser_evaluate`.** Return
+plain synchronous values only. For "is the page ready" checks, use
+`document.readyState === 'complete'` rather than `document.fonts.ready`,
+which can hang on font 404s.
+
+**Token-budget reminder**: screenshots are large (≈30–50k input tokens
+each on the next turn). Take screenshots only for visual checks where a
+snapshot is not enough — desktop + mobile per prototype, interaction
+states, and any rubric finding that needs visual evidence. Don't
+double-screenshot the same view.
 
 ### Evaluate these four dimensions per prototype:
 
@@ -93,7 +148,16 @@ List the files in `designs/` to know which prototypes exist.
 
 ### Stop the server
 
-`mcp__Claude_Preview__preview_stop` when all prototypes have been evaluated.
+When all prototypes have been evaluated, close the browser and stop the
+designs server:
+
+```
+mcp__playwright__browser_close
+```
+
+```bash
+pkill -f 'serve designs'
+```
 
 ---
 

@@ -1,6 +1,6 @@
 # speckit-pipeline
 
-Build and design pipeline extension for [spec-kit](https://github.com/iandeherdt/spec-kit) projects. Automates multi-agent workflows that implement and verify user stories through iterative loops — design/critique and dev/eval — with real browser verification via Claude Preview MCP.
+Build and design pipeline extension for [spec-kit](https://github.com/iandeherdt/spec-kit) projects. Automates multi-agent workflows that implement and verify user stories through iterative loops — design/critique and dev/eval — with real browser verification via Playwright MCP.
 
 ## What it does
 
@@ -37,7 +37,7 @@ This will:
 - Install agents to `.claude/agents/`
 - Install skills to `.claude/skills/`
 - Merge launch configs into `.claude/launch.json` (dev server on port 3000, design server on port 4444)
-- Add required permissions to `.claude/settings.json` (including `mcp__Claude_Preview__*` and `mcp__playwright__*`)
+- Add required permissions to `.claude/settings.json` (including `mcp__playwright__*`)
 - Add Playwright MCP server at project scope (for browser-based verification)
 - Append pipeline documentation to `CLAUDE.md`
 - Install an opinionated constitution to `.specify/memory/constitution.md`
@@ -80,7 +80,7 @@ Starts the developer/evaluator loop. Implements sprints from `specs/<latest-bran
 Each loop runs up to 5 cycles per sprint/design. On each cycle:
 
 1. A **creator agent** (designer or developer) does the work, reading any prior feedback
-2. A **verifier agent** (design-critic or evaluator) checks the result in a real browser using Claude Preview MCP
+2. A **verifier agent** (design-critic or evaluator) checks the result in a real browser using Playwright MCP
 3. The verifier writes scored feedback to `pipeline/feedback/`
 4. If the work passes the quality gate, the loop advances. Otherwise it cycles back with the feedback.
 
