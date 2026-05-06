@@ -291,6 +291,24 @@ stop and report the error.
 
 **NON-NEGOTIABLE**: Every acceptance criterion MUST be verified in the browser. Do NOT verify by reading source code. Code review is not verification. An evaluation without browser screenshots is invalid.
 
+### Selector hygiene (read this BEFORE clicking anything)
+
+Playwright refs (`e123`) and positional selectors (`getByText('xxx').nth(N)`)
+go stale fast. If a panel opens, a row is added or removed, or any state
+change re-renders the page, every ref from a previous snapshot is suspect
+and `nth()` indices may have shifted by one.
+
+**Rules:**
+- Prefer `getByRole('button', { name: 'Stable Label' })` over `nth()` and
+  over numeric refs. Role + accessible name survives most re-renders.
+- Before clicking a numeric ref, confirm it's from the **most recent**
+  snapshot. If anything has happened since (a click, a navigation, a form
+  fill, a network response), take a fresh snapshot first.
+- Never use `nth(N)` for elements whose index depends on dynamic state
+  (e.g., "the 4th `:00` cell" — that 4 changes when slots get booked).
+  If the project's UI lacks stable test ids for such elements, write the
+  workaround you discovered to `pipeline/procedures.md` (see Step 2c).
+
 ### 2a — Verify each acceptance criterion
 
 **Group criteria by page.** Navigate to each page ONCE, take one snapshot,
@@ -369,11 +387,44 @@ structure, details) is unchanged.
 
 **A design exists to be followed.** If the implementation looks noticeably different from the design, that is a failure — not a minor issue. The developer must match the design, not interpret it creatively.
 
-### 2c — Stop servers
+### 2c — Capture reusable knowledge, then stop servers
 
+Before tearing down, capture anything a future cycle would re-discover:
+
+**Reusable selectors** — if you fought with `nth()` or stale refs to reach
+a particular UI element (e.g. "click the Create-appointment button inside
+the slot detail panel"), append a short procedure to
+`pipeline/procedures.md`:
+
+```markdown
+## <UI flow name> (e.g. Open Create Appointment panel for a slot)
+
+**When to use**: <one-line trigger>.
+
+**Steps**:
+1. <stable selector + action>
+2. ...
+
+**Updated**: <YYYY-MM-DD> (Sprint <N> cycle <C>, evaluator)
+```
+
+**Test-data cleanup** — if you inserted any rows directly into the DB to
+set up a fixture (e.g. an overlap row, a synthetic appointment), AND the
+UI flow you tested also created production-shaped rows (e.g. via "Book
+anyway"), record both the inserts and the cleanup queries to
+`pipeline/procedures.md` under `## Test data cleanup` so a crashed cycle
+or a future evaluator can find and remove the residue. Then run the
+cleanup before stopping servers.
+
+**Stop the servers:**
 `mcp__playwright__browser_close` to close the browser. Stop the dev server
-with `pkill -f 'next dev'`. Stop the designs server (if started) with
-`pkill -f 'serve designs'`.
+with `pkill -f 'next dev'` (or the project's stop pattern from
+`pipeline/environment-facts.md`). Stop the designs server (if started)
+with `pkill -f 'serve designs'`. Remove the URL markers:
+
+```bash
+rm -f pipeline/dev-server-url pipeline/designs-server-url
+```
 
 ---
 
