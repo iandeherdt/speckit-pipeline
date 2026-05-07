@@ -162,6 +162,7 @@ One sprint at a time. Work through the task file in order, respecting `[P]` para
 - **Library-first**: Use existing packages over custom implementations (Principle V)
 - **Commits**: Small, atomic — `feat(US-XX): what and why` — quality gates after each
 - **Commit cadence**: Commit after each task or each logical unit (failing tests → feat → refactor). Do NOT accumulate a giant end-of-sprint commit. If you find staged-but-uncommitted work at the start of a retry cycle, commit it first with a clear message before starting new work.
+- **Full-suite check on refactor commits**: For commits whose primary purpose is changing existing code (rename, signature change, query consolidation, type widening, extraction), run the full test suite before staging — targeted tests miss callers you might have overlooked. This is an explicit exception to Step 4's "targeted by default" rule. Pure additions (`feat: new endpoint`, `feat: new component`) stay on targeted.
 
 ---
 
@@ -245,6 +246,15 @@ to any tracking files.
   context for every subsequent turn.
 - **Chasing pre-existing errors**: If typecheck/lint flags a file you never
   touched and never imported from, note it and move on. It's not your bug.
+- **Refactoring without a callsite audit**: Before changing the call
+  shape of an exported function, service method, or query (argument
+  shape, return shape, number of calls), grep the repo for callers
+  AND for test mocks. `mockResolvedValueOnce` chains, `vi.mock` /
+  `jest.mock` fixtures, and spy assertions are the most commonly
+  missed — they pass the targeted test you wrote and fail loudly at
+  the Step 4 full-suite run, after you've already committed. Skip
+  the audit only when the change is confined to a single file with
+  no exports affected.
 - **Environment rediscovery**: The "Environment Facts" section at the top of
   this file (and the `pipeline/environment-facts.md` cache) is the source of
   truth. Do not grep `package.json`, read `.env.local`, or inspect schemas

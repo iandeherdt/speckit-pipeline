@@ -109,7 +109,7 @@ No extra configuration needed — make sure your seed data includes at least one
 
 Three files in `pipeline/` accumulate project knowledge between cycles:
 
-- **`pipeline/environment-facts.md`** — Stable shell facts (typecheck command, dev server command, env file path, DB resolution). Written by the developer on cycle 1, read first on later cycles. The `verify-environment-facts.mjs` script (run automatically before evaluator hand-off) cross-checks recorded DB paths against Prisma's resolution rules and flags orphan dev servers.
+- **`pipeline/environment-facts.md`** — Stable shell facts (typecheck command, dev server command, env file path, DB resolution). Written by the developer on cycle 1, read first on later cycles. The `verify-environment-facts.mjs` script (run automatically before evaluator hand-off) cross-checks recorded DB paths against Prisma's resolution rules, runs `prisma migrate status` to catch drift from manual SQL or forged `_prisma_migrations` rows, and flags orphan dev servers.
 - **`pipeline/procedures.md`** — Multi-step UI flows (login, logout, navigation patterns) discovered by the evaluator and design-critic. Subagents grep by procedure name before doing browser work. Discovered flows survive upgrades (`init --force` never overwrites existing procedures).
 - **`pipeline/run-state.md`** — Per-run state written by the orchestrator (active spec branch, sprint plan, in-scope task IDs). Subagents read it first to avoid re-resolving what the orchestrator already determined.
 
@@ -150,7 +150,8 @@ The installed constitution enforces these principles during development and eval
   scripts/
     trace-hook.mjs              # Claude Code hook — writes JSONL events to pipeline/traces/
     trace-summarise.mjs         # CLI digest — tool frequency, flails, token totals
-    verify-environment-facts.mjs # Pre-handoff sanity check (orphan servers, DB paths, file size)
+    verify-environment-facts.mjs # Pre-handoff sanity check (orphan servers, DB paths, migration drift, file size)
+    check-migration-drift.mjs   # Helper for verify-environment-facts: runs `prisma migrate status`
     start-dev-server.mjs        # Start dev server, parse bound URL from output, record to pipeline/
   launch.json
   settings.json

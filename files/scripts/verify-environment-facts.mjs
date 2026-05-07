@@ -15,12 +15,16 @@
 //   3. Source files exceeding the Constitution's 500-line ceiling
 //      (Principle III). Caught pre-handoff so the evaluator doesn't
 //      have to flag it post-hoc.
+//   4. Prisma migration drift — schema and DB out of sync, often from
+//      manual SQL or rows inserted into _prisma_migrations to mask a
+//      failed `migrate dev`. Silently masks future drift if not caught.
 //
 // Exit 0 = all checks pass. Exit 1 = at least one failure (block handoff).
 
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { execSync } from 'node:child_process';
+import { checkMigrationDrift } from './check-migration-drift.mjs';
 
 const cwd = process.cwd();
 const ROOT = cwd;
@@ -348,7 +352,11 @@ function rel(absPath) {
 }
 
 // -----------------------------------------------------------------------
-// Check 3 — File size ceiling (Constitution Principle III)
+// Check 3 — Prisma migration drift (in ./check-migration-drift.mjs)
+// -----------------------------------------------------------------------
+
+// -----------------------------------------------------------------------
+// Check 4 — File size ceiling (Constitution Principle III)
 // -----------------------------------------------------------------------
 //
 // Looks at source files the developer just touched (working tree changes,
@@ -461,6 +469,7 @@ function checkFileSizes() {
 process.stdout.write('verify-environment-facts:\n');
 checkNoOrphanDevServers();
 checkDbPathConsistency();
+checkMigrationDrift({ root: ROOT, pass, fail, info });
 checkFileSizes();
 
 if (failures > 0) {
