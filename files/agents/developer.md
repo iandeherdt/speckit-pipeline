@@ -189,6 +189,14 @@ the final handoff.
    suite. If a test outside your scope fails and you did not touch related
    code, note it for the evaluator. Do NOT chase unrelated flakes.
 
+   **Beat the 2-minute Bash timeout.** The default Bash tool timeout is
+   120000 ms; large test suites routinely exceed that and get auto-backgrounded,
+   which forces you to fish stdout out of the task-output file. Avoid both:
+   - For runs you expect to finish within ~10 minutes, pass an explicit
+     `timeout` (e.g. `timeout: 600000` for 10 min) on the Bash call.
+   - For longer runs, use `run_in_background: true` deliberately and read
+     the output file when the agent notifies you of completion.
+
 5. **Dev server smoke check**: Start the dev server via the pipeline
    helper, which parses the actual bound URL out of the server's
    startup output (handles port fallback), then curl that URL:
@@ -241,3 +249,10 @@ to any tracking files.
   this file (and the `pipeline/environment-facts.md` cache) is the source of
   truth. Do not grep `package.json`, read `.env.local`, or inspect schemas
   to reconfirm facts already recorded there.
+- **`pgrep -f` shell-wrapper false positives**: `pgrep -f "<pattern>"`
+  matches the bash wrapper currently executing your `pgrep` command itself,
+  so you'll see a "live" PID that vanishes by the time you try to kill it.
+  Cross-check before acting: `kill -0 <pid>` confirms liveness, and
+  `cat /proc/<pid>/cmdline` (or `ps -p <pid> -o args=`) shows the actual
+  current command rather than historic argv from a parent shell snapshot.
+  Don't loop on phantom PIDs.
