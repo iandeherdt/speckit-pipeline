@@ -51,6 +51,29 @@ Subagents will read this file before any other discovery. Do not list
 `specs/`, `test -f .specify/extensions.yml`, or otherwise re-validate
 facts that already live here.
 
+## Clean previous run artifacts (run once, before the first sprint)
+
+`pipeline/feedback/` and `pipeline/traces/` are per-run scratch space.
+Stale sprint feedback files, screenshots, and JSONL traces from earlier
+builds are noise once a new run starts — they confuse the orchestrator
+when it scans for "already-completed" sprints, and they bloat trace
+digests with content from prior features. Wipe both directories at the
+start of every `/build`:
+
+```bash
+rm -rf pipeline/feedback pipeline/traces
+mkdir -p pipeline/feedback pipeline/traces
+```
+
+This does NOT touch the persistent caches:
+- `pipeline/build-log.md` — historical log across runs
+- `pipeline/environment-facts.md` — cached commands and DB paths
+- `pipeline/procedures.md` — cached UI flows (login etc.)
+- `pipeline/run-state.md` — overwritten on the next step anyway
+
+If the user has a reason to preserve a prior run's feedback, they should
+copy `pipeline/feedback/` somewhere safe before invoking `/build`.
+
 ## Process
 
 Read the sprint tasks from `specs/<latest-branch>/tasks.md` in order.
