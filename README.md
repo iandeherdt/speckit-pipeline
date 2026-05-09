@@ -36,7 +36,7 @@ npx speckit-pipeline init
 This will:
 - Install agents to `.claude/agents/`
 - Install skills to `.claude/skills/`
-- Install helper scripts to `.claude/scripts/` — trace hook, trace summariser, env-facts verifier, dev-server starter
+- Install helper scripts to `.claude/scripts/` — trace hook, trace summariser, env-facts verifier, migration-drift checker, dev-server starter, run-artifact cleaner
 - Merge launch configs into `.claude/launch.json` (dev server on port 3000, design server on port 4444)
 - Add required permissions and trace hooks to `.claude/settings.json` (including `mcp__playwright__*`)
 - Add Playwright MCP server at project scope (for browser-based verification)
@@ -93,6 +93,15 @@ Each loop runs up to 5 cycles per sprint/design. On each cycle:
 4. If the work passes the quality gate, the loop advances. Otherwise it cycles back with the feedback.
 
 Issues marked `[High]` always block — they must be resolved before a sprint can pass.
+
+### Per-run cleanup
+
+`pipeline/feedback/` and `pipeline/traces/` are per-run scratch space. Both
+`/build` and `/design` wipe them at the start of every invocation via
+`.claude/scripts/clean-run-artifacts.mjs`. The persistent caches
+(`build-log.md`, `environment-facts.md`, `procedures.md`, `run-state.md`)
+are left untouched. If you want to keep a previous run's feedback or
+trace, copy `pipeline/feedback/` somewhere safe before re-running.
 
 ### Authenticated apps
 
@@ -153,6 +162,7 @@ The installed constitution enforces these principles during development and eval
     verify-environment-facts.mjs # Pre-handoff sanity check (orphan servers, DB paths, migration drift, file size)
     check-migration-drift.mjs   # Helper for verify-environment-facts: runs `prisma migrate status`
     start-dev-server.mjs        # Start dev server, parse bound URL from output, record to pipeline/
+    clean-run-artifacts.mjs     # Wipe pipeline/feedback/ + pipeline/traces/ at start of /build and /design
   launch.json
   settings.json
 pipeline/
