@@ -57,19 +57,18 @@ facts that already live here.
 Stale sprint feedback files, screenshots, and JSONL traces from earlier
 builds are noise once a new run starts — they confuse the orchestrator
 when it scans for "already-completed" sprints, and they bloat trace
-digests with content from prior features. Wipe both directories at the
-start of every `/build`:
+digests with content from prior features. Run the cleanup helper once,
+before the first sprint:
 
 ```bash
-rm -rf pipeline/feedback pipeline/traces
-mkdir -p pipeline/feedback pipeline/traces
+node .claude/scripts/clean-run-artifacts.mjs
 ```
 
-This does NOT touch the persistent caches:
-- `pipeline/build-log.md` — historical log across runs
-- `pipeline/environment-facts.md` — cached commands and DB paths
-- `pipeline/procedures.md` — cached UI flows (login etc.)
-- `pipeline/run-state.md` — overwritten on the next step anyway
+The script wipes `pipeline/feedback/` and `pipeline/traces/` and leaves
+the persistent caches untouched (`build-log.md`, `environment-facts.md`,
+`procedures.md`, and `run-state.md` — the last is overwritten by the
+next orchestrator step anyway). Pass `--dry-run` to preview without
+touching the disk.
 
 If the user has a reason to preserve a prior run's feedback, they should
 copy `pipeline/feedback/` somewhere safe before invoking `/build`.
