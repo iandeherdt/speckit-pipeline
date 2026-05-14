@@ -1,10 +1,13 @@
 {
   "name": "speckit-pipeline",
-  "version": "1.7.4",
+  "version": "1.8.0",
   "description": "Build/design pipeline extension for spec-kit projects. Adds dev/eval and designer/critic loops with Claude Preview MCP browser verification.",
   "type": "module",
   "bin": {
     "speckit-pipeline": "bin/speckit-pipeline.mjs"
+  },
+  "scripts": {
+    "test": "node tests/guard-repeat-commands.test.mjs"
   },
   "files": [
     "bin/",

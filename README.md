@@ -36,7 +36,7 @@ npx speckit-pipeline init
 This will:
 - Install agents to `.claude/agents/`
 - Install skills to `.claude/skills/`
-- Install helper scripts to `.claude/scripts/` — trace hook, trace summariser, env-facts verifier, migration-drift checker, dev-server starter, run-artifact cleaner
+- Install helper scripts to `.claude/scripts/` — trace hook, repeat-command guard, trace summariser, env-facts verifier, migration-drift checker, dev-server starter, run-artifact cleaner
 - Merge launch configs into `.claude/launch.json` (dev server on port 3000, design server on port 4444)
 - Add required permissions and trace hooks to `.claude/settings.json` (including `mcp__playwright__*`)
 - Add Playwright MCP server at project scope (for browser-based verification)
@@ -132,6 +132,15 @@ node .claude/scripts/trace-summarise.mjs pipeline/traces/<file>.jsonl
 
 Output includes per-tool call frequency, suspected flailing (≥5 consecutive identical-fingerprint calls), per-subagent stop markers, and total token usage by run.
 
+### Runtime guard
+
+`guard-repeat-commands.mjs` runs as a `PreToolUse` hook on every `Bash` call and refuses two specific anti-patterns mid-run rather than logging them after the fact:
+
+1. **Re-running an expensive command to re-filter output** — if `npm run test/lint/typecheck/build`, `playwright test`, `prisma migrate`, etc. already ran in this session and no `Edit` or `Write` tool call happened since, the second invocation is denied with a message pointing to `tee /tmp/<name>-out.txt` once, then grep the file. The "base" command is matched after stripping trailing `| grep/tail/head/awk/sed/wc/jq` pipes, so re-running with a different filter still counts as a repeat.
+2. **State-wipe loops** — three or more `rm -rf` of the same path (matching `pglite`, `.next`, `node_modules`, `data/`) within 30 minutes is denied. If the same failure persists after wiping, the bug isn't stale state.
+
+Set `SPECKIT_GUARD=0` in the environment to bypass both rules for a session.
+
 ## Constitution principles
 
 The installed constitution enforces these principles during development and evaluation:
@@ -158,6 +167,8 @@ The installed constitution enforces these principles during development and eval
     design/SKILL.md
   scripts/
     trace-hook.mjs              # Claude Code hook — writes JSONL events to pipeline/traces/
+    trace-path.mjs              # Shared helper: locate the per-session trace file
+    guard-repeat-commands.mjs   # PreToolUse hook — blocks redundant expensive commands & state-wipe loops
     trace-summarise.mjs         # CLI digest — tool frequency, flails, token totals
     verify-environment-facts.mjs # Pre-handoff sanity check (orphan servers, DB paths, migration drift, file size)
     check-migration-drift.mjs   # Helper for verify-environment-facts: runs `prisma migrate status`
