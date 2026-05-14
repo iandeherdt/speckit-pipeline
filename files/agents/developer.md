@@ -244,6 +244,13 @@ to any tracking files.
   changed it.
 - **Tailing full logs**: Use `tail -N` with a small N. Full log dumps pollute
   context for every subsequent turn.
+- **Re-running expensive commands to re-filter output**: If a command
+  takes more than a few seconds (full test suite, repo-wide typecheck,
+  build), tee its output to a file once and grep the file as many
+  times as you need — do NOT re-invoke the command to grep
+  differently. `npm test 2>&1 | tee /tmp/test-out.txt`, then
+  `grep "FAIL " /tmp/test-out.txt`, `grep "^FAIL " /tmp/test-out.txt`,
+  etc. Each redundant re-run is dead wall time you can't get back.
 - **Chasing pre-existing errors**: If typecheck/lint flags a file you never
   touched and never imported from, note it and move on. It's not your bug.
 - **Refactoring without a callsite audit**: Before changing the call

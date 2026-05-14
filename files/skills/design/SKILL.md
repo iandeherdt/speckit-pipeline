@@ -50,6 +50,27 @@ Update the per-cycle line at the start of each cycle:
 Subagents will read this file before any other discovery. Do not list
 `specs/` or otherwise re-validate facts that already live here.
 
+## Clean previous run artifacts (run once, before the first cycle)
+
+`pipeline/feedback/` and `pipeline/traces/` are per-run scratch space.
+Stale design-review feedback files, screenshots, and JSONL traces from
+earlier runs are noise once a new design loop starts — they bloat trace
+digests with content from prior features. Run the cleanup helper once,
+before the first cycle:
+
+```bash
+node .claude/scripts/clean-run-artifacts.mjs
+```
+
+The script wipes `pipeline/feedback/` and `pipeline/traces/` and leaves
+the persistent caches untouched (`build-log.md`, `environment-facts.md`,
+`procedures.md`, and `run-state.md` — the last is overwritten by the
+next orchestrator step anyway). Pass `--dry-run` to preview without
+touching the disk.
+
+If the user has a reason to preserve a prior run's feedback, they should
+copy `pipeline/feedback/` somewhere safe before invoking `/design`.
+
 ## Process
 
 Max cycles: $MAX_CYCLES, default 5.
